@@ -270,6 +270,10 @@
       --theme-glow: rgba(0, 229, 255, 0.5);
       --theme-bg-subtle: rgba(0, 229, 255, 0.08);
       --theme-border: rgba(0, 229, 255, 0.35);
+      --theme-accent-2: #A855F7;
+      --theme-accent-2-rgb: 168, 85, 247;
+      --theme-gradient: linear-gradient(135deg, #00E5FF, #A855F7);
+      --speed-ratio: 0;
 
       /* DYNAMIC CARD THEME VARIABLES */
       --card-bg-start: rgba(14, 18, 26, 0.90);
@@ -314,11 +318,11 @@
       height: 2.5px;
       background: linear-gradient(90deg, 
         transparent 0%, 
-        rgba(255, 255, 255, 0.15) 8%, 
-        var(--theme-accent) 25%, 
-        #ffffff 50%, 
-        var(--theme-accent) 75%, 
-        rgba(255, 255, 255, 0.15) 92%, 
+        rgba(255, 255, 255, 0.15) 8%,
+        var(--theme-accent) 25%,
+        #ffffff 50%,
+        var(--theme-accent-2) 75%,
+        rgba(255, 255, 255, 0.15) 92%,
         transparent 100%
       );
       box-shadow: 0 1px 10px var(--theme-glow), 0 0 4px #ffffff;
@@ -499,17 +503,107 @@
       footer { flex-wrap: wrap; gap: 4px; }
     }
 
-    /* Mode Hemat: matikan animasi & efek glow yang terus digambar ulang (berat di tablet lama) */
+    /* ===================== EFEK FUTURISTIK KARTU SPEEDOMETER ===================== */
+    /* Bingkai gradasi 2 warna + isolasi agar lapisan efek berada di bawah konten */
+    .speedo-card {
+      isolation: isolate;
+      border: 1.5px solid transparent !important;
+      background:
+        linear-gradient(135deg, var(--card-bg-start), var(--card-bg-end)) padding-box,
+        linear-gradient(135deg, rgba(var(--theme-accent-rgb), 0.75), rgba(255, 255, 255, 0.08) 45%, rgba(var(--theme-accent-2-rgb), 0.75)) border-box !important;
+    }
+    .speedo-fx { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; border-radius: inherit; }
+    /* Cahaya di belakang gauge: makin kencang makin terang (opacity murah untuk GPU) */
+    .speedo-glow {
+      position: absolute; left: 50%; top: 46%; width: 78%; height: 92%;
+      transform: translate(-50%, -50%); border-radius: 50%;
+      background: radial-gradient(closest-side,
+        rgba(var(--theme-accent-rgb), 0.34),
+        rgba(var(--theme-accent-2-rgb), 0.16) 55%,
+        transparent 100%);
+      opacity: calc(0.45 + 0.55 * var(--speed-ratio));
+    }
+    /* Lantai grid 3D (gaya cyberpunk); mengalir saat mobil bergerak */
+    .speedo-grid {
+      position: absolute; left: -50%; right: -50%; bottom: 0; height: 58%; overflow: hidden;
+      -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.95), transparent 95%);
+      mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.95), transparent 95%);
+    }
+    .speedo-grid-plane {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 240%;
+      transform-origin: 50% 100%; transform: perspective(300px) rotateX(58deg);
+      background-image:
+        linear-gradient(rgba(var(--theme-accent-rgb), 0.6) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(var(--theme-accent-2-rgb), 0.55) 2px, transparent 2px);
+      background-size: 54px 54px;
+      animation: speedoGridFlow var(--grid-duration, 2s) linear infinite;
+      animation-play-state: var(--grid-state, paused);
+      will-change: transform;
+    }
+    @keyframes speedoGridFlow {
+      from { transform: perspective(300px) rotateX(58deg) translateY(0); }
+      to { transform: perspective(300px) rotateX(58deg) translateY(54px); }
+    }
+    .speedo-vignette {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 40%, transparent 60%, rgba(0, 0, 0, 0.4) 100%);
+    }
+    /* Kemiringan 3D halus pada gauge + bayangan kedalaman */
+    .speedo-card [id^="cluster_"] { transform: perspective(1600px) rotateX(7deg); transform-origin: 50% 65%; }
+    .speedo-card [id^="cluster_"] > svg { filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.65)); }
+    /* Angka kecepatan bergradasi dengan cahaya */
+    #speedDisplay, #hondaSpeedDisplay {
+      background: linear-gradient(180deg, #ffffff 15%, var(--theme-accent) 60%, var(--theme-accent-2) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+      text-shadow: none !important;
+      filter: drop-shadow(0 0 12px rgba(var(--theme-accent-rgb), 0.55));
+    }
+
+    /* Editor gradasi di Pengaturan */
+    .grad-editor { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+    .grad-editor-head { display: flex; flex-direction: column; gap: 2px; }
+    .grad-editor-row { display: flex; align-items: center; gap: 10px; }
+    .grad-color { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; color: #94a3b8; font-family: monospace; }
+    .grad-color input { width: 40px; height: 32px; border: 0; padding: 0; background: transparent; cursor: pointer; }
+    .grad-preview { flex: 1; height: 26px; border-radius: 999px; background: var(--theme-gradient); box-shadow: 0 0 14px rgba(var(--theme-accent-rgb), 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35); }
+    .grad-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+    .grad-chip {
+      height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.18);
+      font-size: 10px; font-weight: 700; font-family: monospace; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+      background: linear-gradient(135deg, var(--g1), var(--g2));
+    }
+
+    /* Mode Hemat: hanya hentikan animasi yang terus berjalan. Bayangan, glow, dan bingkai 3D
+       tetap tampil karena itu statis (tidak membebani prosesor setiap saat). */
     body.eco-mode *, body.eco-mode *::before, body.eco-mode *::after {
       animation: none !important;
       transition: none !important;
-      box-shadow: none !important;
-      text-shadow: none !important;
-      filter: none !important;
+    }
+    body.eco-mode .speedo-card [id^="cluster_"] > svg { filter: none !important; }
+    /* Grid mengalir tetap jalan di Mode Hemat: hanya animasi transform (diproses GPU, ringan) */
+    body.eco-mode .speedo-grid-plane {
+      animation: speedoGridFlow var(--grid-duration, 2s) linear infinite !important;
+      animation-play-state: var(--grid-state, paused) !important;
     }
   </style>
 </head>
 <body id="appRoot" class="fixed inset-0 w-screen h-screen m-0 p-1 sm:p-1.5 bg-[var(--bg-outer-main,#020408)] text-slate-100 font-sans select-none antialiased overflow-hidden flex flex-col justify-between transition-colors duration-500">
+  <!-- Gradasi aksen 2 warna untuk semua SVG speedometer (warna dari variabel tema) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="elioAccentGrad" gradientUnits="userSpaceOnUse" x1="150" y1="300" x2="300" y2="150">
+        <stop offset="0" style="stop-color: var(--theme-accent)" />
+        <stop offset="1" style="stop-color: var(--theme-accent-2)" />
+      </linearGradient>
+      <linearGradient id="elioSpeedTextGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0.2" stop-color="#FFFFFF" />
+        <stop offset="0.7" style="stop-color: var(--theme-accent)" />
+        <stop offset="1" style="stop-color: var(--theme-accent-2)" />
+      </linearGradient>
+    </defs>
+  </svg>
+
 
   <!-- 100% TRUE FULLSCREEN EDGE-TO-EDGE AUTOMOTIVE COCKPIT FRAME -->
   <div id="tabletFrame" class="relative w-full h-full rounded-xl sm:rounded-2xl p-1.5 sm:p-2 shadow-none border border-white/5 overflow-hidden flex flex-col justify-between transition-colors duration-500" style="background: radial-gradient(circle at 50% 0%, var(--theme-bg-subtle, rgba(0, 229, 255, 0.04)) 0%, transparent 70%);">
@@ -867,6 +961,29 @@
             <button type="button" onclick="applyCustomHex('#A855F7')" class="tactile-btn px-2 py-0.5 rounded text-[8px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/40">Violet Hyper</button>
             <button type="button" onclick="applyCustomHex('#3B82F6')" class="tactile-btn px-2 py-0.5 rounded text-[8px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/40">Laser Blue</button>
           </div>
+
+          <!-- Gradasi warna custom (2 warna) -->
+          <div class="grad-editor">
+            <div class="grad-editor-head">
+              <span class="text-[10px] font-bold text-white font-mono">GRADASI CUSTOM</span>
+              <span class="text-[8.5px] text-slate-400">Jarum, garis speedometer, angka & lampu tepi memakai gradasi ini</span>
+            </div>
+            <div class="grad-editor-row">
+              <label class="grad-color"><input type="color" id="gradColor1" value="#00E5FF" oninput="applyThemeGradient(this.value, document.getElementById('gradColor2').value, true)"><span>Warna 1</span></label>
+              <div id="gradPreview" class="grad-preview"></div>
+              <label class="grad-color"><input type="color" id="gradColor2" value="#A855F7" oninput="applyThemeGradient(document.getElementById('gradColor1').value, this.value, true)"><span>Warna 2</span></label>
+            </div>
+            <div class="grad-presets">
+              <button type="button" class="tactile-btn grad-chip" style="--g1:#00E5FF;--g2:#A855F7" onclick="applyThemeGradient('#00E5FF', '#A855F7', true)">Cyber Neon</button>
+              <button type="button" class="tactile-btn grad-chip" style="--g1:#00F5A0;--g2:#00D9F5" onclick="applyThemeGradient('#00F5A0', '#00D9F5', true)">Aurora</button>
+              <button type="button" class="tactile-btn grad-chip" style="--g1:#F72585;--g2:#4361EE" onclick="applyThemeGradient('#F72585', '#4361EE', true)">Plasma</button>
+              <button type="button" class="tactile-btn grad-chip" style="--g1:#FF6A00;--g2:#EE0979" onclick="applyThemeGradient('#FF6A00', '#EE0979', true)">Sunset</button>
+              <button type="button" class="tactile-btn grad-chip" style="--g1:#FF1E56;--g2:#FFAC41" onclick="applyThemeGradient('#FF1E56', '#FFAC41', true)">Lava GR</button>
+              <button type="button" class="tactile-btn grad-chip" style="--g1:#F7971E;--g2:#FFD200" onclick="applyThemeGradient('#F7971E', '#FFD200', true)">Gold</button>
+              <button type="button" class="tactile-btn grad-chip" style="--g1:#74EBD5;--g2:#9FACE6" onclick="applyThemeGradient('#74EBD5', '#9FACE6', true)">Ice</button>
+              <button type="button" class="tactile-btn grad-chip" style="--g1:#B7FF00;--g2:#00E5FF" onclick="applyThemeGradient('#B7FF00', '#00E5FF', true)">Toxic</button>
+            </div>
+          </div>
         </div>
 
         <!-- 1B: 3D Card Background Tint -->
@@ -992,7 +1109,7 @@
         <div class="bg-black/40 p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
           <div>
             <span class="text-[10px] font-bold text-white font-mono">MODE HEMAT (TABLET / HP LAMA)</span>
-            <p class="text-[8.5px] text-slate-400">Matikan animasi & efek glow supaya layar lebih ringan, tidak cepat panas, dan tombol responsif.</p>
+            <p class="text-[8.5px] text-slate-400">Hentikan animasi berkedip supaya tidak cepat panas. Efek 3D, glow, dan gradasi tetap tampil.</p>
           </div>
           <button type="button" id="ecoModeBtn" onclick="toggleEcoMode()" class="tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer">🍃 Mode Hemat: OFF</button>
         </div>
@@ -1137,31 +1254,31 @@
             </defs>
 
             <!-- Holographic Radar Sweep Circles -->
-            <ellipse cx="140" cy="95" rx="110" ry="45" fill="none" stroke="var(--theme-accent)" stroke-width="0.8" stroke-dasharray="4 6" opacity="0.4" />
+            <ellipse cx="140" cy="95" rx="110" ry="45" fill="none" stroke="url(#elioAccentGrad)" stroke-width="0.8" stroke-dasharray="4 6" opacity="0.4" />
             <ellipse cx="140" cy="95" rx="80" ry="32" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.8" />
 
             <!-- Sensor Telemetry Laser Links -->
-            <line x1="88" y1="58" x2="10" y2="40" stroke="var(--theme-accent)" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.7" />
-            <line x1="88" y1="130" x2="10" y2="150" stroke="var(--theme-accent)" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.7" />
-            <line x1="192" y1="58" x2="270" y2="40" stroke="var(--theme-accent)" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.7" />
-            <line x1="192" y1="130" x2="270" y2="150" stroke="var(--theme-accent)" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.7" />
+            <line x1="88" y1="58" x2="10" y2="40" stroke="url(#elioAccentGrad)" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.7" />
+            <line x1="88" y1="130" x2="10" y2="150" stroke="url(#elioAccentGrad)" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.7" />
+            <line x1="192" y1="58" x2="270" y2="40" stroke="url(#elioAccentGrad)" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.7" />
+            <line x1="192" y1="130" x2="270" y2="150" stroke="url(#elioAccentGrad)" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.7" />
 
             <!-- CAR CHASSIS CENTER GROUP (INNOVA REBORN SILHOUETTE) -->
             <g id="innovaChassis" transform="translate(140, 95)">
               
               <!-- 4 Wheels / Tires with Neon Sensor Aura -->
               <!-- Front-Left Wheel -->
-              <rect x="-56" y="-48" width="12" height="22" rx="3" fill="#0B0F17" stroke="var(--theme-accent)" stroke-width="1.5" />
-              <rect x="-54" y="-44" width="8" height="14" rx="1.5" fill="var(--theme-accent)" opacity="0.5" />
+              <rect x="-56" y="-48" width="12" height="22" rx="3" fill="#0B0F17" stroke="url(#elioAccentGrad)" stroke-width="1.5" />
+              <rect x="-54" y="-44" width="8" height="14" rx="1.5" fill="url(#elioAccentGrad)" opacity="0.5" />
               <!-- Front-Right Wheel -->
-              <rect x="44" y="-48" width="12" height="22" rx="3" fill="#0B0F17" stroke="var(--theme-accent)" stroke-width="1.5" />
-              <rect x="46" y="-44" width="8" height="14" rx="1.5" fill="var(--theme-accent)" opacity="0.5" />
+              <rect x="44" y="-48" width="12" height="22" rx="3" fill="#0B0F17" stroke="url(#elioAccentGrad)" stroke-width="1.5" />
+              <rect x="46" y="-44" width="8" height="14" rx="1.5" fill="url(#elioAccentGrad)" opacity="0.5" />
               <!-- Rear-Left Wheel -->
-              <rect x="-56" y="24" width="12" height="22" rx="3" fill="#0B0F17" stroke="var(--theme-accent)" stroke-width="1.5" />
-              <rect x="-54" y="28" width="8" height="14" rx="1.5" fill="var(--theme-accent)" opacity="0.5" />
+              <rect x="-56" y="24" width="12" height="22" rx="3" fill="#0B0F17" stroke="url(#elioAccentGrad)" stroke-width="1.5" />
+              <rect x="-54" y="28" width="8" height="14" rx="1.5" fill="url(#elioAccentGrad)" opacity="0.5" />
               <!-- Rear-Right Wheel -->
-              <rect x="44" y="24" width="12" height="22" rx="3" fill="#0B0F17" stroke="var(--theme-accent)" stroke-width="1.5" />
-              <rect x="46" y="28" width="8" height="14" rx="1.5" fill="var(--theme-accent)" opacity="0.5" />
+              <rect x="44" y="24" width="12" height="22" rx="3" fill="#0B0F17" stroke="url(#elioAccentGrad)" stroke-width="1.5" />
+              <rect x="46" y="28" width="8" height="14" rx="1.5" fill="url(#elioAccentGrad)" opacity="0.5" />
 
               <!-- Main Vehicle Aerodynamic Body Profile (Top-Down Innova Reborn) -->
               <path d="M -38 -58 
@@ -1274,8 +1391,14 @@
     <main id="viewDashboard" class="relative z-10 grid grid-cols-12 gap-3 my-1.5 flex-1 min-h-0 items-stretch pl-3 transition-all duration-300">
       
       <!-- SPEEDOMETER CLUSTER: satu-satunya kartu, memenuhi layar (YouTube/Maps lewat split screen) -->
-      <section class="col-span-12 cockpit-glass rounded-xl px-2 py-2 sm:px-2.5 sm:py-2.5 flex flex-col justify-between relative overflow-hidden min-h-0 group">
-        
+      <section class="speedo-card col-span-12 cockpit-glass rounded-xl px-2 py-2 sm:px-2.5 sm:py-2.5 flex flex-col justify-between relative overflow-hidden min-h-0 group">
+        <!-- Efek latar: cahaya reaktif kecepatan + lantai grid 3D yang mengalir saat mobil bergerak -->
+        <div class="speedo-fx" aria-hidden="true">
+          <div class="speedo-glow"></div>
+          <div class="speedo-grid"><div class="speedo-grid-plane"></div></div>
+          <div class="speedo-vignette"></div>
+        </div>
+
         <!-- Header: Style Switcher Toolbar -->
         <div class="flex items-center justify-between pb-1.5 border-b border-white/[0.06] text-[8px] font-mono">
           <div class="flex items-center gap-1">
@@ -1322,22 +1445,22 @@
             <!-- LEFT FLANKING F-SPORT FULL-HEIGHT WING (y=6 to 334) -->
             <g transform="translate(6, 6)">
               <rect x="0" y="0" width="112" height="328" rx="8" fill="rgba(8,12,22,0.65)" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-              <path d="M 0,0 L 112,0" stroke="var(--theme-accent)" stroke-width="2.5" opacity="0.9" />
+              <path d="M 0,0 L 112,0" stroke="url(#elioAccentGrad)" stroke-width="2.5" opacity="0.9" />
               
               <text x="12" y="24" fill="#64748B" font-size="7.5" font-family="monospace" font-weight="bold">TRIP A</text>
               <text x="12" y="46" fill="#F8FAFC" font-size="16" font-family="monospace" font-weight="black"><tspan class="live-trip-km">0.0</tspan> <tspan font-size="8" fill="#64748B">km</tspan></text>
               
               <text x="12" y="74" fill="#64748B" font-size="7.5" font-family="monospace">CRUISING RANGE</text>
-              <text x="12" y="96" fill="var(--theme-accent)" font-size="16" font-family="monospace" font-weight="black">540 <tspan font-size="8" fill="#64748B">km</tspan></text>
+              <text x="12" y="96" fill="url(#elioAccentGrad)" font-size="16" font-family="monospace" font-weight="black">540 <tspan font-size="8" fill="#64748B">km</tspan></text>
               
               <line x1="12" y1="112" x2="100" y2="112" stroke="rgba(255,255,255,0.08)" />
 
               <text x="12" y="132" fill="#64748B" font-size="7.5" font-family="monospace">AVG FUEL CONSUMPTION</text>
-              <text x="12" y="154" fill="var(--theme-accent)" font-size="15" font-family="monospace" font-weight="black">14.8 <tspan font-size="8" fill="#64748B">km/L</tspan></text>
+              <text x="12" y="154" fill="url(#elioAccentGrad)" font-size="15" font-family="monospace" font-weight="black">14.8 <tspan font-size="8" fill="#64748B">km/L</tspan></text>
 
               <text x="12" y="182" fill="#64748B" font-size="7" font-family="monospace">THROTTLE / LOAD</text>
               <rect x="12" y="190" width="88" height="6" rx="3" fill="rgba(255,255,255,0.08)" />
-              <rect id="lfaLoadBar" x="12" y="190" width="6" height="6" rx="3" fill="var(--theme-accent)" />
+              <rect id="lfaLoadBar" x="12" y="190" width="6" height="6" rx="3" fill="url(#elioAccentGrad)" />
 
               <line x1="12" y1="214" x2="100" y2="214" stroke="rgba(255,255,255,0.08)" />
 
@@ -1346,19 +1469,19 @@
               <text class="live-battery-status" x="12" y="274" fill="#64748B" font-size="7" font-family="monospace">BATTERY: --%</text>
               
               <line x1="12" y1="292" x2="100" y2="292" stroke="rgba(255,255,255,0.08)" />
-              <text class="live-gnss-status" x="12" y="312" fill="var(--theme-accent)" font-size="8.5" font-family="monospace" font-weight="bold">🟡 GNSS SEARCH</text>
+              <text class="live-gnss-status" x="12" y="312" fill="url(#elioAccentGrad)" font-size="8.5" font-family="monospace" font-weight="bold">🟡 GNSS SEARCH</text>
             </g>
 
             <!-- RIGHT FLANKING F-SPORT FULL-HEIGHT WING (y=6 to 334) -->
             <g transform="translate(322, 6)">
               <rect x="0" y="0" width="112" height="328" rx="8" fill="rgba(8,12,22,0.65)" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-              <path d="M 0,0 L 112,0" stroke="var(--theme-accent)" stroke-width="2.5" opacity="0.9" />
+              <path d="M 0,0 L 112,0" stroke="url(#elioAccentGrad)" stroke-width="2.5" opacity="0.9" />
               
               <text x="12" y="24" fill="#64748B" font-size="7.5" font-family="monospace" font-weight="bold">ALTITUDE (GNSS)</text>
-              <text class="live-alt-val" x="12" y="46" fill="var(--theme-accent)" font-size="16" font-family="monospace" font-weight="black">0 <tspan font-size="8" fill="#64748B">m</tspan></text>
+              <text class="live-alt-val" x="12" y="46" fill="url(#elioAccentGrad)" font-size="16" font-family="monospace" font-weight="black">0 <tspan font-size="8" fill="#64748B">m</tspan></text>
               
               <text x="12" y="74" fill="#64748B" font-size="7.5" font-family="monospace">COMPASS HEADING</text>
-              <text class="live-heading-val" x="12" y="96" fill="var(--theme-accent)" font-size="16" font-family="monospace" font-weight="black">N 0°</text>
+              <text class="live-heading-val" x="12" y="96" fill="url(#elioAccentGrad)" font-size="16" font-family="monospace" font-weight="black">N 0°</text>
               
               <line x1="12" y1="112" x2="100" y2="112" stroke="rgba(255,255,255,0.08)" />
 
@@ -1372,39 +1495,39 @@
               <line x1="12" y1="192" x2="100" y2="192" stroke="rgba(255,255,255,0.08)" />
 
               <text x="12" y="214" fill="#64748B" font-size="7" font-family="monospace">LATERAL G-FORCE</text>
-              <text id="lfaGDisplay" x="12" y="236" fill="var(--theme-accent)" font-size="15" font-family="monospace" font-weight="black">+0.00G</text>
+              <text id="lfaGDisplay" x="12" y="236" fill="url(#elioAccentGrad)" font-size="15" font-family="monospace" font-weight="black">+0.00G</text>
 
               <line x1="12" y1="256" x2="100" y2="256" stroke="rgba(255,255,255,0.08)" />
 
               <text x="12" y="278" fill="#64748B" font-size="7" font-family="monospace">GNSS SATELLITES</text>
-              <text class="live-sats-val" x="12" y="298" fill="var(--theme-accent)" font-size="8.5" font-family="monospace" font-weight="bold">🟡 0/0 SATS</text>
+              <text class="live-sats-val" x="12" y="298" fill="url(#elioAccentGrad)" font-size="8.5" font-family="monospace" font-weight="bold">🟡 0/0 SATS</text>
               <text x="12" y="316" fill="#64748B" font-size="7" font-family="monospace">ACCEL: HARDWARE</text>
             </g>
 
             <!-- CENTER: 1. MODERN TOP SPEED HUD POD (y=6 to 92) -->
             <g transform="translate(0, 0)">
               <polygon points="152,6 288,6 298,16 298,82 288,92 152,92 142,82 142,16" fill="rgba(6, 10, 20, 0.85)" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1.2" />
-              <line x1="172" y1="6" x2="268" y2="6" stroke="var(--theme-accent)" stroke-width="2.5" opacity="0.95" />
+              <line x1="172" y1="6" x2="268" y2="6" stroke="url(#elioAccentGrad)" stroke-width="2.5" opacity="0.95" />
 
-              <path d="M 146,28 L 146,14 L 160,14" fill="none" stroke="var(--theme-accent)" stroke-width="2" stroke-linecap="round" />
-              <path d="M 294,28 L 294,14 L 280,14" fill="none" stroke="var(--theme-accent)" stroke-width="2" stroke-linecap="round" />
-              <path d="M 146,74 L 146,88 L 160,88" fill="none" stroke="var(--theme-accent)" stroke-width="2" stroke-linecap="round" />
-              <path d="M 294,74 L 294,88 L 280,88" fill="none" stroke="var(--theme-accent)" stroke-width="2" stroke-linecap="round" />
+              <path d="M 146,28 L 146,14 L 160,14" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" stroke-linecap="round" />
+              <path d="M 294,28 L 294,14 L 280,14" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" stroke-linecap="round" />
+              <path d="M 146,74 L 146,88 L 160,88" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" stroke-linecap="round" />
+              <path d="M 294,74 L 294,88 L 280,88" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" stroke-linecap="round" />
 
-              <text x="220" y="22" fill="var(--theme-accent)" font-size="7" font-family="monospace" font-weight="900" letter-spacing="1.5" text-anchor="middle">DIGITAL SPEED // SATELLITE HUD</text>
+              <text x="220" y="22" fill="url(#elioAccentGrad)" font-size="7" font-family="monospace" font-weight="900" letter-spacing="1.5" text-anchor="middle">DIGITAL SPEED // SATELLITE HUD</text>
 
               <g transform="skewX(-7) translate(16, 0)">
-                <text id="lfaSpeedDisplay" x="202" y="68" fill="#FFFFFF" font-size="48" font-family="monospace" font-weight="900" text-anchor="middle" style="filter: drop-shadow(0 0 18px var(--theme-glow));">84</text>
-                <text x="252" y="50" fill="var(--theme-accent)" font-size="11" font-family="monospace" font-weight="900">KM/H</text>
-                <text x="252" y="66" fill="var(--theme-accent)" font-size="7" font-family="monospace" font-weight="bold">GPS LIVE</text>
+                <text id="lfaSpeedDisplay" x="202" y="68" fill="url(#elioSpeedTextGrad)" font-size="48" font-family="monospace" font-weight="900" text-anchor="middle" style="filter: drop-shadow(0 0 18px var(--theme-glow));">84</text>
+                <text x="252" y="50" fill="url(#elioAccentGrad)" font-size="11" font-family="monospace" font-weight="900">KM/H</text>
+                <text x="252" y="66" fill="url(#elioAccentGrad)" font-size="7" font-family="monospace" font-weight="bold">GPS LIVE</text>
               </g>
 
               <line x1="168" y1="82" x2="272" y2="82" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
-              <circle cx="220" cy="82" r="2" fill="var(--theme-accent)" />
+              <circle cx="220" cy="82" r="2" fill="url(#elioAccentGrad)" />
             </g>
 
             <!-- Connecting Vertical Laser Sight Line -->
-            <line x1="220" y1="94" x2="220" y2="124" stroke="var(--theme-accent)" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
+            <line x1="220" y1="94" x2="220" y2="124" stroke="url(#elioAccentGrad)" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
 
             <!-- CENTER: 2. LOWER MECHANICAL-DIGITAL LEXUS LFA HALO DIAL (CENTER AT 220, 226, r=88) -->
             <g transform="translate(220, 226)">
@@ -1421,8 +1544,8 @@
                 <line x1="-72.0" y1="-0.0" x2="-64.0" y2="-0.0" stroke="white" stroke-width="1.5" />
                 <text x="-52.0" y="3.0" fill="#94A3B8" font-size="7.5" font-family="monospace" text-anchor="middle">40</text>
                 
-                <line x1="-55.2" y1="-46.3" x2="-49.0" y2="-41.1" stroke="var(--theme-accent)" stroke-width="2" />
-                <text x="-39.8" y="-30.4" fill="var(--theme-accent)" font-size="8" font-family="monospace" font-weight="bold" text-anchor="middle">80</text>
+                <line x1="-55.2" y1="-46.3" x2="-49.0" y2="-41.1" stroke="url(#elioAccentGrad)" stroke-width="2" />
+                <text x="-39.8" y="-30.4" fill="url(#elioAccentGrad)" font-size="8" font-family="monospace" font-weight="bold" text-anchor="middle">80</text>
                 
                 <line x1="-12.5" y1="-70.9" x2="-11.1" y2="-63.0" stroke="white" stroke-width="1.5" />
                 <text x="-9.0" y="-49.2" fill="#94A3B8" font-size="7.5" font-family="monospace" text-anchor="middle">120</text>
@@ -1444,14 +1567,14 @@
               <circle cx="0" cy="0" r="74" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7" stroke-dasharray="336 129" stroke-dashoffset="0" transform="rotate(140 0 0)" stroke-linecap="round" />
 
               <!-- DYNAMIC ILLUMINATED LEXUS HALO BLADE -->
-              <circle id="lfaHaloBlade" cx="0" cy="0" r="74" fill="none" stroke="var(--theme-accent)" stroke-width="7" stroke-dasharray="336 129" stroke-dashoffset="227" transform="rotate(140 0 0)" stroke-linecap="round" style="filter: drop-shadow(0 0 14px var(--theme-glow));" class="transition-all duration-300" />
+              <circle id="lfaHaloBlade" cx="0" cy="0" r="74" fill="none" stroke="url(#elioAccentGrad)" stroke-width="7" stroke-dasharray="336 129" stroke-dashoffset="227" transform="rotate(140 0 0)" stroke-linecap="round" style="filter: drop-shadow(0 0 14px var(--theme-glow));" class="transition-all duration-300" />
 
               <!-- THE FAMOUS LEXUS LFA ROTATING ILLUMINATED NEEDLE -->
               <g id="lfaNeedle" transform="rotate(-46 0 0)" class="transition-transform duration-150">
                 <line x1="0" y1="0" x2="0" y2="-66" stroke="white" stroke-width="2.5" stroke-linecap="round" style="filter: drop-shadow(0 0 6px white);" />
                 <polygon points="0,-70 4,-62 -4,-62" fill="#EE1C25" style="filter: drop-shadow(0 0 6px #EE1C25);" />
                 <circle cx="0" cy="0" r="10" fill="#090D16" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
-                <circle cx="0" cy="0" r="4.5" fill="var(--theme-accent)" />
+                <circle cx="0" cy="0" r="4.5" fill="url(#elioAccentGrad)" />
               </g>
 
               <!-- DIAL INNER COCKPIT TELEMETRY -->
@@ -1467,7 +1590,7 @@
               <line x1="0" y1="3" x2="0" y2="8" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
 
               <text id="lfaGForceDial" x="0" y="10" fill="#F8FAFC" font-size="15" font-family="monospace" font-weight="900" text-anchor="middle">+0.40G</text>
-              <text x="0" y="24" fill="var(--theme-accent)" font-size="7.5" font-family="monospace" font-weight="bold" letter-spacing="1" text-anchor="middle">LATERAL TELEMETRY</text>
+              <text x="0" y="24" fill="url(#elioAccentGrad)" font-size="7.5" font-family="monospace" font-weight="bold" letter-spacing="1" text-anchor="middle">LATERAL TELEMETRY</text>
 
               <text x="0" y="44" fill="#94A3B8" font-size="8.5" font-family="monospace" font-weight="black" letter-spacing="1.5" text-anchor="middle">LEXUS F SPORT</text>
             </g>
@@ -1491,13 +1614,13 @@
             <line x1="28" y1="280" x2="36" y2="275" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" />
             <text x="44" y="277" fill="#94A3B8" font-size="8" font-family="monospace">60</text>
             
-            <line x1="10" y1="220" x2="2" y2="220" stroke="var(--theme-accent)" stroke-width="2.5" />
+            <line x1="10" y1="220" x2="2" y2="220" stroke="url(#elioAccentGrad)" stroke-width="2.5" />
             <text x="18" y="223" fill="#F8FAFC" font-size="9" font-family="monospace" font-weight="bold">90</text>
             
-            <line x1="10" y1="170" x2="0" y2="170" stroke="var(--theme-accent)" stroke-width="3" />
-            <text x="18" y="173" fill="var(--theme-accent)" font-size="10" font-family="monospace" font-weight="black">120</text>
+            <line x1="10" y1="170" x2="0" y2="170" stroke="url(#elioAccentGrad)" stroke-width="3" />
+            <text x="18" y="173" fill="url(#elioAccentGrad)" font-size="10" font-family="monospace" font-weight="black">120</text>
             
-            <line x1="10" y1="120" x2="2" y2="120" stroke="var(--theme-accent)" stroke-width="2.5" />
+            <line x1="10" y1="120" x2="2" y2="120" stroke="url(#elioAccentGrad)" stroke-width="2.5" />
             <text x="18" y="123" fill="#F8FAFC" font-size="9" font-family="monospace" font-weight="bold">150</text>
             
             <line x1="28" y1="60" x2="36" y2="65" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" />
@@ -1510,7 +1633,7 @@
             <text x="130" y="34" fill="#EE1C25" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle">240</text>
 
             <path d="M 130,326 L 44,326 L 10,256 L 10,84 L 44,14 L 130,14" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="6" />
-            <path id="m3SpeedPath" d="M 130,326 L 44,326 L 10,256 L 10,84 L 44,14 L 130,14" fill="none" stroke="var(--theme-accent)" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="6" stroke-dasharray="500" stroke-dashoffset="310" style="filter: drop-shadow(0 0 16px var(--theme-glow));" class="transition-all duration-300" />
+            <path id="m3SpeedPath" d="M 130,326 L 44,326 L 10,256 L 10,84 L 44,14 L 130,14" fill="none" stroke="url(#elioAccentGrad)" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="6" stroke-dasharray="500" stroke-dashoffset="310" style="filter: drop-shadow(0 0 16px var(--theme-glow));" class="transition-all duration-300" />
 
             <!-- RIGHT CHEVRON: G-FORCE / DYNAMICS FULL-BLEED (x=430, y=14 to 326) -->
             <line x1="310" y1="326" x2="310" y2="316" stroke="rgba(255,255,255,0.5)" stroke-width="2" />
@@ -1522,11 +1645,11 @@
             <line x1="412" y1="280" x2="404" y2="275" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" />
             <text x="396" y="277" fill="#94A3B8" font-size="8" font-family="monospace" text-anchor="end">0.5</text>
             
-            <line x1="430" y1="220" x2="438" y2="220" stroke="var(--theme-accent)" stroke-width="2.5" />
+            <line x1="430" y1="220" x2="438" y2="220" stroke="url(#elioAccentGrad)" stroke-width="2.5" />
             <text x="422" y="223" fill="#F8FAFC" font-size="9" font-family="monospace" font-weight="bold" text-anchor="end">0.8G</text>
             
-            <line x1="430" y1="170" x2="440" y2="170" stroke="var(--theme-accent)" stroke-width="3" />
-            <text x="422" y="173" fill="var(--theme-accent)" font-size="10" font-family="monospace" font-weight="black" text-anchor="end">1.0G</text>
+            <line x1="430" y1="170" x2="440" y2="170" stroke="url(#elioAccentGrad)" stroke-width="3" />
+            <text x="422" y="173" fill="url(#elioAccentGrad)" font-size="10" font-family="monospace" font-weight="black" text-anchor="end">1.0G</text>
             
             <line x1="430" y1="120" x2="438" y2="120" stroke="#EE1C25" stroke-width="2.5" />
             <text x="422" y="123" fill="#EE1C25" font-size="9" font-family="monospace" font-weight="bold" text-anchor="end">1.2G</text>
@@ -1538,11 +1661,11 @@
             <text x="370" y="34" fill="#EE1C25" font-size="8" font-family="monospace" font-weight="bold" text-anchor="middle">1.6G</text>
 
             <path d="M 310,326 L 396,326 L 430,256 L 430,84 L 396,14 L 310,14" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="6" />
-            <path id="m3RpmPath" d="M 310,326 L 396,326 L 430,256 L 430,84 L 396,14 L 310,14" fill="none" stroke="var(--theme-accent)" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="6" stroke-dasharray="500" stroke-dashoffset="360" style="filter: drop-shadow(0 0 16px var(--theme-glow));" class="transition-all duration-300" />
+            <path id="m3RpmPath" d="M 310,326 L 396,326 L 430,256 L 430,84 L 396,14 L 310,14" fill="none" stroke="url(#elioAccentGrad)" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="6" stroke-dasharray="500" stroke-dashoffset="360" style="filter: drop-shadow(0 0 16px var(--theme-glow));" class="transition-all duration-300" />
 
             <!-- CENTER RETICLE & CALIPERS -->
-            <path d="M 196,44 L 220,30 L 244,44" fill="none" stroke="var(--theme-accent)" stroke-width="2.5" opacity="0.9" />
-            <path d="M 196,296 L 220,310 L 244,296" fill="none" stroke="var(--theme-accent)" stroke-width="2.5" opacity="0.9" />
+            <path d="M 196,44 L 220,30 L 244,44" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2.5" opacity="0.9" />
+            <path d="M 196,296 L 220,310 L 244,296" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2.5" opacity="0.9" />
             <line x1="170" y1="170" x2="185" y2="170" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
             <line x1="255" y1="170" x2="270" y2="170" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
           </svg>
@@ -1586,8 +1709,8 @@
             <!-- LEFT WING: MAZDA i-ACTIVSENSE & TRIP (y=6 to 334) -->
             <g transform="translate(6, 6)">
               <rect x="0" y="0" width="112" height="328" rx="8" fill="rgba(8,12,22,0.65)" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-              <circle cx="16" cy="22" r="4" fill="var(--theme-accent)" />
-              <text x="26" y="25" fill="var(--theme-accent)" font-size="8.5" font-family="monospace" font-weight="bold">i-STOP READY</text>
+              <circle cx="16" cy="22" r="4" fill="url(#elioAccentGrad)" />
+              <text x="26" y="25" fill="url(#elioAccentGrad)" font-size="8.5" font-family="monospace" font-weight="bold">i-STOP READY</text>
               
               <text x="14" y="48" fill="#64748B" font-size="7.5" font-family="monospace">AVG FUEL CONSUMPTION</text>
               <text x="14" y="68" fill="#F8FAFC" font-size="16" font-family="monospace" font-weight="black">14.8 <tspan font-size="8" fill="#64748B">km/L</tspan></text>
@@ -1599,34 +1722,34 @@
               
               <line x1="14" y1="144" x2="98" y2="144" stroke="rgba(255,255,255,0.08)" />
 
-              <text x="14" y="166" fill="var(--theme-accent)" font-size="8" font-family="monospace" font-weight="bold">GVC PLUS ACTIVE</text>
+              <text x="14" y="166" fill="url(#elioAccentGrad)" font-size="8" font-family="monospace" font-weight="bold">GVC PLUS ACTIVE</text>
               <rect x="14" y="174" width="84" height="6" rx="3" fill="rgba(255,255,255,0.08)" />
-              <rect x="14" y="174" width="56" height="6" rx="3" fill="var(--theme-accent)" />
+              <rect x="14" y="174" width="56" height="6" rx="3" fill="url(#elioAccentGrad)" />
 
               <line x1="14" y1="200" x2="98" y2="200" stroke="rgba(255,255,255,0.08)" />
 
               <text x="14" y="222" fill="#64748B" font-size="7.5" font-family="monospace">TABLET TELEMETRY</text>
-              <text x="14" y="242" fill="#F8FAFC" font-size="9.5" font-family="monospace" font-weight="bold">ACC • <tspan class="live-acc-status" fill="var(--theme-accent)">ACTIVE</tspan></text>
+              <text x="14" y="242" fill="#F8FAFC" font-size="9.5" font-family="monospace" font-weight="bold">ACC • <tspan class="live-acc-status" fill="url(#elioAccentGrad)">ACTIVE</tspan></text>
               <text class="live-gnss-status" x="14" y="260" fill="#64748B" font-size="7.5" font-family="monospace">GNSS SEARCH</text>
 
               <line x1="14" y1="280" x2="98" y2="280" stroke="rgba(255,255,255,0.08)" />
-              <text x="14" y="304" fill="var(--theme-accent)" font-size="8" font-family="monospace" font-weight="bold">MAZDA HARMONY</text>
+              <text x="14" y="304" fill="url(#elioAccentGrad)" font-size="8" font-family="monospace" font-weight="bold">MAZDA HARMONY</text>
             </g>
 
             <!-- RIGHT WING: RANGE & NAVIGATION (y=6 to 334) -->
             <g transform="translate(322, 6)">
               <rect x="0" y="0" width="112" height="328" rx="8" fill="rgba(8,12,22,0.65)" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
               <text x="14" y="24" fill="#64748B" font-size="7.5" font-family="monospace">CRUISING RANGE</text>
-              <text x="14" y="44" fill="var(--theme-accent)" font-size="16" font-family="monospace" font-weight="black">540 <tspan font-size="8" fill="#64748B">km</tspan></text>
+              <text x="14" y="44" fill="url(#elioAccentGrad)" font-size="16" font-family="monospace" font-weight="black">540 <tspan font-size="8" fill="#64748B">km</tspan></text>
               
               <line x1="14" y1="60" x2="98" y2="60" stroke="rgba(255,255,255,0.08)" />
 
               <text x="14" y="80" fill="#64748B" font-size="7.5" font-family="monospace">HEADING</text>
-              <text class="live-heading-val" x="14" y="100" fill="var(--theme-accent)" font-size="16" font-family="monospace" font-weight="bold">N 0°</text>
+              <text class="live-heading-val" x="14" y="100" fill="url(#elioAccentGrad)" font-size="16" font-family="monospace" font-weight="bold">N 0°</text>
 
               <line x1="14" y1="116" x2="98" y2="116" stroke="rgba(255,255,255,0.08)" />
 
-              <text x="14" y="136" fill="#64748B" font-size="7.5" font-family="monospace">ALTITUDE: <tspan class="live-alt-val" fill="var(--theme-accent)" font-weight="bold">0m</tspan></text>
+              <text x="14" y="136" fill="#64748B" font-size="7.5" font-family="monospace">ALTITUDE: <tspan class="live-alt-val" fill="url(#elioAccentGrad)" font-weight="bold">0m</tspan></text>
               <g transform="translate(14, 144)">
                 <circle cx="12" cy="12" r="11" fill="white" stroke="#EE1C25" stroke-width="3" />
                 <text x="12" y="16" fill="#0F172A" font-size="9.5" font-family="sans-serif" font-weight="900" text-anchor="middle">80</text>
@@ -1636,40 +1759,40 @@
               <line x1="14" y1="190" x2="98" y2="190" stroke="rgba(255,255,255,0.08)" />
 
               <text x="14" y="214" fill="#64748B" font-size="7.5" font-family="monospace">TIRE PRESSURE (EST)</text>
-              <text x="14" y="234" fill="var(--theme-accent)" font-size="12" font-family="monospace" font-weight="bold">33 PSI <tspan font-size="8" fill="#64748B">NORMAL</tspan></text>
+              <text x="14" y="234" fill="url(#elioAccentGrad)" font-size="12" font-family="monospace" font-weight="bold">33 PSI <tspan font-size="8" fill="#64748B">NORMAL</tspan></text>
 
               <line x1="14" y1="256" x2="98" y2="256" stroke="rgba(255,255,255,0.08)" />
               <text x="14" y="280" fill="#64748B" font-size="7.5" font-family="monospace">JINBA ITTAI LINK</text>
-              <text x="14" y="302" fill="var(--theme-accent)" font-size="8.5" font-family="monospace" font-weight="bold">🟢 CALIBRATED</text>
+              <text x="14" y="302" fill="url(#elioAccentGrad)" font-size="8.5" font-family="monospace" font-weight="bold">🟢 CALIBRATED</text>
             </g>
 
             <!-- CENTER: 1. MAZDA ACTIVE DRIVING DISPLAY HUD POD (ABOVE ANALOG DIAL, y=6 to 92) -->
             <g transform="translate(0, 0)">
               <!-- Satin Chrome Beveled HUD Pod Frame -->
               <polygon points="152,6 288,6 298,16 298,82 288,92 152,92 142,82 142,16" fill="rgba(6, 10, 20, 0.85)" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1.2" />
-              <line x1="172" y1="6" x2="268" y2="6" stroke="var(--theme-accent)" stroke-width="2.5" opacity="0.95" />
+              <line x1="172" y1="6" x2="268" y2="6" stroke="url(#elioAccentGrad)" stroke-width="2.5" opacity="0.95" />
 
               <!-- Refined Minimalist Corner Calipers -->
-              <path d="M 146,28 L 146,14 L 160,14" fill="none" stroke="var(--theme-accent)" stroke-width="2" stroke-linecap="round" />
-              <path d="M 294,28 L 294,14 L 280,14" fill="none" stroke="var(--theme-accent)" stroke-width="2" stroke-linecap="round" />
-              <path d="M 146,74 L 146,88 L 160,88" fill="none" stroke="var(--theme-accent)" stroke-width="2" stroke-linecap="round" />
-              <path d="M 294,74 L 294,88 L 280,88" fill="none" stroke="var(--theme-accent)" stroke-width="2" stroke-linecap="round" />
+              <path d="M 146,28 L 146,14 L 160,14" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" stroke-linecap="round" />
+              <path d="M 294,28 L 294,14 L 280,14" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" stroke-linecap="round" />
+              <path d="M 146,74 L 146,88 L 160,88" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" stroke-linecap="round" />
+              <path d="M 294,74 L 294,88 L 280,88" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" stroke-linecap="round" />
 
-              <text x="220" y="22" fill="var(--theme-accent)" font-size="7" font-family="sans-serif" font-weight="bold" letter-spacing="1.5" text-anchor="middle">ACTIVE DRIVING DISPLAY // HUD</text>
+              <text x="220" y="22" fill="url(#elioAccentGrad)" font-size="7" font-family="sans-serif" font-weight="bold" letter-spacing="1.5" text-anchor="middle">ACTIVE DRIVING DISPLAY // HUD</text>
 
               <!-- Dynamic Speed Digits (Above the analog dial) -->
               <g transform="skewX(-6) translate(14, 0)">
-                <text id="mazdaSpeedDisplay" x="204" y="68" fill="#FFFFFF" font-size="48" font-family="sans-serif" font-weight="300" text-anchor="middle" style="filter: drop-shadow(0 0 16px var(--theme-glow));">84</text>
-                <text x="252" y="50" fill="var(--theme-accent)" font-size="11" font-family="sans-serif" font-weight="700">KM/H</text>
-                <text x="252" y="66" fill="var(--theme-accent)" font-size="7" font-family="monospace" font-weight="bold">GPS LIVE</text>
+                <text id="mazdaSpeedDisplay" x="204" y="68" fill="url(#elioSpeedTextGrad)" font-size="48" font-family="sans-serif" font-weight="300" text-anchor="middle" style="filter: drop-shadow(0 0 16px var(--theme-glow));">84</text>
+                <text x="252" y="50" fill="url(#elioAccentGrad)" font-size="11" font-family="sans-serif" font-weight="700">KM/H</text>
+                <text x="252" y="66" fill="url(#elioAccentGrad)" font-size="7" font-family="monospace" font-weight="bold">GPS LIVE</text>
               </g>
 
               <line x1="168" y1="82" x2="272" y2="82" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
-              <circle cx="220" cy="82" r="2" fill="var(--theme-accent)" />
+              <circle cx="220" cy="82" r="2" fill="url(#elioAccentGrad)" />
             </g>
 
             <!-- Connecting Vertical Laser Sight Line -->
-            <line x1="220" y1="94" x2="220" y2="124" stroke="var(--theme-accent)" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
+            <line x1="220" y1="94" x2="220" y2="124" stroke="url(#elioAccentGrad)" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
 
             <!-- CENTER: 2. LOWER MAZDA KODO ANALOG METER (CENTER AT 220, 226, r=88) -->
             <g transform="translate(220, 226)">
@@ -1686,8 +1809,8 @@
                 <line x1="-72.0" y1="-0.0" x2="-64.0" y2="-0.0" stroke="white" stroke-width="1.5" />
                 <text x="-52.0" y="3.0" fill="#94A3B8" font-size="7.5" font-family="sans-serif" text-anchor="middle">40</text>
                 
-                <line x1="-55.2" y1="-46.3" x2="-49.0" y2="-41.1" stroke="var(--theme-accent)" stroke-width="1.8" />
-                <text x="-39.8" y="-30.4" fill="var(--theme-accent)" font-size="8" font-family="sans-serif" font-weight="bold" text-anchor="middle">80</text>
+                <line x1="-55.2" y1="-46.3" x2="-49.0" y2="-41.1" stroke="url(#elioAccentGrad)" stroke-width="1.8" />
+                <text x="-39.8" y="-30.4" fill="url(#elioAccentGrad)" font-size="8" font-family="sans-serif" font-weight="bold" text-anchor="middle">80</text>
                 
                 <line x1="-12.5" y1="-70.9" x2="-11.1" y2="-63.0" stroke="white" stroke-width="1.5" />
                 <text x="-9.0" y="-49.2" fill="#94A3B8" font-size="7.5" font-family="sans-serif" text-anchor="middle">120</text>
@@ -1707,19 +1830,19 @@
 
               <!-- Dynamic Illuminated Trailing Halo Arc -->
               <circle cx="0" cy="0" r="74" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6" stroke-dasharray="336 129" stroke-dashoffset="0" transform="rotate(140 0 0)" stroke-linecap="round" />
-              <circle id="mazdaHaloArc" cx="0" cy="0" r="74" fill="none" stroke="var(--theme-accent)" stroke-width="6" stroke-dasharray="336 129" stroke-dashoffset="227" transform="rotate(140 0 0)" stroke-linecap="round" style="filter: drop-shadow(0 0 12px var(--theme-glow));" class="transition-all duration-300" />
+              <circle id="mazdaHaloArc" cx="0" cy="0" r="74" fill="none" stroke="url(#elioAccentGrad)" stroke-width="6" stroke-dasharray="336 129" stroke-dashoffset="227" transform="rotate(140 0 0)" stroke-linecap="round" style="filter: drop-shadow(0 0 12px var(--theme-glow));" class="transition-all duration-300" />
 
               <!-- Elegant Slim Mazda Crimson / Accent Needle -->
               <g id="mazdaNeedle" transform="rotate(-46 0 0)" class="transition-transform duration-150">
-                <line x1="0" y1="0" x2="0" y2="-66" stroke="var(--theme-accent)" stroke-width="2.5" stroke-linecap="round" style="filter: drop-shadow(0 0 8px var(--theme-glow));" />
+                <line x1="0" y1="0" x2="0" y2="-66" stroke="url(#elioAccentGrad)" stroke-width="2.5" stroke-linecap="round" style="filter: drop-shadow(0 0 8px var(--theme-glow));" />
                 <circle cx="0" cy="0" r="9" fill="#0B0F19" stroke="#94A3B8" stroke-width="1.5" />
-                <circle cx="0" cy="0" r="4" fill="var(--theme-accent)" />
+                <circle cx="0" cy="0" r="4" fill="url(#elioAccentGrad)" />
               </g>
 
               <!-- DIAL INNER COCKPIT TELEMETRY -->
               <g transform="translate(0, -28)">
-                <rect x="-32" y="-8" width="64" height="16" rx="8" fill="rgba(var(--theme-accent-rgb, 0,229,255), 0.2)" stroke="var(--theme-accent)" stroke-width="1" />
-                <circle cx="-20" cy="0" r="2.5" fill="var(--theme-accent)" />
+                <rect x="-32" y="-8" width="64" height="16" rx="8" fill="rgba(var(--theme-accent-rgb, 0,229,255), 0.2)" stroke="url(#elioAccentGrad)" stroke-width="1" />
+                <circle cx="-20" cy="0" r="2.5" fill="url(#elioAccentGrad)" />
                 <text x="3" y="3.5" fill="#FFFFFF" font-size="7.5" font-family="sans-serif" font-weight="bold" letter-spacing="1" text-anchor="middle">i-ACTIVSENSE</text>
               </g>
 
@@ -1729,7 +1852,7 @@
               <line x1="0" y1="3" x2="0" y2="8" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
 
               <text id="mazdaGDisplay" x="0" y="10" fill="#F8FAFC" font-size="15" font-family="sans-serif" font-weight="700" text-anchor="middle">+0.40G</text>
-              <text x="0" y="24" fill="var(--theme-accent)" font-size="7.5" font-family="sans-serif" font-weight="bold" letter-spacing="1" text-anchor="middle">GVC PLUS DYNAMICS</text>
+              <text x="0" y="24" fill="url(#elioAccentGrad)" font-size="7.5" font-family="sans-serif" font-weight="bold" letter-spacing="1" text-anchor="middle">GVC PLUS DYNAMICS</text>
 
               <text x="0" y="44" fill="#94A3B8" font-size="8.5" font-family="sans-serif" font-weight="bold" letter-spacing="1.5" text-anchor="middle">MAZDA KODO</text>
             </g>
@@ -1741,33 +1864,33 @@
           <svg class="w-full h-full flex-1" viewBox="0 0 440 340" preserveAspectRatio="xMidYMid meet">
             <!-- F1-STYLE TOP SHIFT-LIGHT REV / G-FORCE LADDER BAR (y=6 to 30) -->
             <g transform="translate(10, 6)">
-              <rect x="0" y="0" width="420" height="22" rx="4" fill="rgba(8,12,22,0.85)" stroke="var(--theme-accent)" stroke-width="1.2" stroke-opacity="0.75" />
+              <rect x="0" y="0" width="420" height="22" rx="4" fill="rgba(8,12,22,0.85)" stroke="url(#elioAccentGrad)" stroke-width="1.2" stroke-opacity="0.75" />
               
               <!-- 10 Segmented LEDs stretching across the card in theme accent -->
-              <rect id="hondaLed1" x="8" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="0.45" class="transition-all" />
-              <rect id="hondaLed2" x="48" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="0.55" class="transition-all" />
-              <rect id="hondaLed3" x="88" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="0.65" class="transition-all" />
-              <rect id="hondaLed4" x="128" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="0.75" class="transition-all" />
-              <rect id="hondaLed5" x="172" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="0.85" class="transition-all" />
-              <rect id="hondaLed6" x="212" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="0.95" class="transition-all" />
-              <rect id="hondaLed7" x="252" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="1" style="filter: drop-shadow(0 0 6px var(--theme-glow));" class="transition-all" />
+              <rect id="hondaLed1" x="8" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="0.45" class="transition-all" />
+              <rect id="hondaLed2" x="48" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="0.55" class="transition-all" />
+              <rect id="hondaLed3" x="88" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="0.65" class="transition-all" />
+              <rect id="hondaLed4" x="128" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="0.75" class="transition-all" />
+              <rect id="hondaLed5" x="172" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="0.85" class="transition-all" />
+              <rect id="hondaLed6" x="212" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="0.95" class="transition-all" />
+              <rect id="hondaLed7" x="252" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="1" style="filter: drop-shadow(0 0 6px var(--theme-glow));" class="transition-all" />
               <!-- High-RPM Peak Shift Warning LEDs -->
-              <rect id="hondaLed8" x="296" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="0.35" class="transition-all" />
-              <rect id="hondaLed9" x="336" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="0.35" class="transition-all" />
-              <rect id="hondaLed10" x="376" y="3" width="34" height="16" rx="2" fill="var(--theme-accent)" opacity="0.35" class="transition-all" />
+              <rect id="hondaLed8" x="296" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="0.35" class="transition-all" />
+              <rect id="hondaLed9" x="336" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="0.35" class="transition-all" />
+              <rect id="hondaLed10" x="376" y="3" width="34" height="16" rx="2" fill="url(#elioAccentGrad)" opacity="0.35" class="transition-all" />
             </g>
 
             <!-- LEFT GEOMETRIC TACHYMETER WING (y=36 to 334) -->
             <g transform="translate(8, 36)">
               <polygon points="0,0 110,0 95,298 0,298" fill="rgba(8,12,22,0.65)" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
-              <path d="M 0,0 L 110,0" stroke="var(--theme-accent)" stroke-width="2.5" />
+              <path d="M 0,0 L 110,0" stroke="url(#elioAccentGrad)" stroke-width="2.5" />
               
               <!-- Segmented Speed Arc -->
               <path d="M 16,240 L 32,130 L 64,50 L 102,24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="8" stroke-linecap="butt" />
-              <path id="hondaSpeedBlade" d="M 16,240 L 32,130 L 64,50 L 102,24" fill="none" stroke="var(--theme-accent)" stroke-width="8" stroke-linecap="butt" stroke-dasharray="240" stroke-dashoffset="100" style="filter: drop-shadow(0 0 14px var(--theme-glow));" class="transition-all duration-300" />
+              <path id="hondaSpeedBlade" d="M 16,240 L 32,130 L 64,50 L 102,24" fill="none" stroke="url(#elioAccentGrad)" stroke-width="8" stroke-linecap="butt" stroke-dasharray="240" stroke-dashoffset="100" style="filter: drop-shadow(0 0 14px var(--theme-glow));" class="transition-all duration-300" />
               
-              <text x="14" y="26" fill="var(--theme-accent)" font-size="10" font-family="monospace" font-weight="black">VTEC TURBO</text>
-              <text x="14" y="46" fill="#F8FAFC" font-size="13" font-family="monospace" font-weight="bold">1.2 <tspan font-size="8" fill="var(--theme-accent)">BAR</tspan></text>
+              <text x="14" y="26" fill="url(#elioAccentGrad)" font-size="10" font-family="monospace" font-weight="black">VTEC TURBO</text>
+              <text x="14" y="46" fill="#F8FAFC" font-size="13" font-family="monospace" font-weight="bold">1.2 <tspan font-size="8" fill="url(#elioAccentGrad)">BAR</tspan></text>
               
               <line x1="14" y1="68" x2="96" y2="68" stroke="rgba(255,255,255,0.08)" />
 
@@ -1777,56 +1900,56 @@
               <line x1="14" y1="134" x2="96" y2="134" stroke="rgba(255,255,255,0.08)" />
 
               <text x="14" y="156" fill="#64748B" font-size="8" font-family="monospace">REV MATCH</text>
-              <text x="14" y="176" fill="var(--theme-accent)" font-size="11" font-family="monospace" font-weight="bold">ACTIVE</text>
+              <text x="14" y="176" fill="url(#elioAccentGrad)" font-size="11" font-family="monospace" font-weight="bold">ACTIVE</text>
               <text x="14" y="198" fill="#64748B" font-size="8" font-family="monospace">THROTTLE: 48%</text>
               <rect x="14" y="206" width="80" height="5" rx="2.5" fill="rgba(255,255,255,0.08)" />
-              <rect x="14" y="206" width="48" height="5" rx="2.5" fill="var(--theme-accent)" />
+              <rect x="14" y="206" width="48" height="5" rx="2.5" fill="url(#elioAccentGrad)" />
 
               <line x1="14" y1="230" x2="96" y2="230" stroke="rgba(255,255,255,0.08)" />
               <text x="14" y="252" fill="#64748B" font-size="7.5" font-family="monospace">TABLET SENSOR ACC</text>
-              <text x="14" y="272" fill="var(--theme-accent)" font-size="9" font-family="monospace" font-weight="bold">USB 5V • <tspan class="live-acc-status">ACTIVE</tspan></text>
+              <text x="14" y="272" fill="url(#elioAccentGrad)" font-size="9" font-family="monospace" font-weight="bold">USB 5V • <tspan class="live-acc-status">ACTIVE</tspan></text>
               <text x="14" y="290" fill="#64748B" font-size="7.5" font-family="monospace">BAT: <tspan class="live-battery-status">--%</tspan></text>
             </g>
 
             <!-- RIGHT GEOMETRIC WING (Honda LogR Multi-Info & G-Meter, y=36 to 334) -->
             <g transform="translate(322, 36)">
               <polygon points="0,0 110,0 110,298 15,298" fill="rgba(8,12,22,0.65)" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
-              <path d="M 0,0 L 110,0" stroke="var(--theme-accent)" stroke-width="2.5" />
+              <path d="M 0,0 L 110,0" stroke="url(#elioAccentGrad)" stroke-width="2.5" />
               
-              <text x="14" y="24" fill="var(--theme-accent)" font-size="9.5" font-family="monospace" font-weight="black">LogR // G-METER</text>
+              <text x="14" y="24" fill="url(#elioAccentGrad)" font-size="9.5" font-family="monospace" font-weight="black">LogR // G-METER</text>
               
               <!-- Circular G-Force Crosshair Radar in Theme Accent -->
-              <circle cx="55" cy="92" r="44" fill="none" stroke="var(--theme-accent)" stroke-opacity="0.3" stroke-width="1.2" />
-              <circle cx="55" cy="92" r="24" fill="none" stroke="var(--theme-accent)" stroke-opacity="0.15" stroke-width="1" />
-              <line x1="11" y1="92" x2="99" y2="92" stroke="var(--theme-accent)" stroke-opacity="0.25" stroke-width="1" />
-              <line x1="55" y1="48" x2="55" y2="136" stroke="var(--theme-accent)" stroke-opacity="0.25" stroke-width="1" />
+              <circle cx="55" cy="92" r="44" fill="none" stroke="url(#elioAccentGrad)" stroke-opacity="0.3" stroke-width="1.2" />
+              <circle cx="55" cy="92" r="24" fill="none" stroke="url(#elioAccentGrad)" stroke-opacity="0.15" stroke-width="1" />
+              <line x1="11" y1="92" x2="99" y2="92" stroke="url(#elioAccentGrad)" stroke-opacity="0.25" stroke-width="1" />
+              <line x1="55" y1="48" x2="55" y2="136" stroke="url(#elioAccentGrad)" stroke-opacity="0.25" stroke-width="1" />
               <!-- Dynamic Moving G-Ball in Theme Accent -->
-              <circle id="hondaGBall" cx="64" cy="84" r="6" fill="var(--theme-accent)" style="filter: drop-shadow(0 0 12px var(--theme-glow));" class="transition-all duration-150" />
+              <circle id="hondaGBall" cx="64" cy="84" r="6" fill="url(#elioAccentGrad)" style="filter: drop-shadow(0 0 12px var(--theme-glow));" class="transition-all duration-150" />
               
-              <text x="14" y="156" fill="var(--theme-accent)" font-size="9.5" font-family="monospace" font-weight="bold" id="hondaGText">+0.00G ACCEL</text>
+              <text x="14" y="156" fill="url(#elioAccentGrad)" font-size="9.5" font-family="monospace" font-weight="bold" id="hondaGText">+0.00G ACCEL</text>
 
               <line x1="14" y1="174" x2="96" y2="174" stroke="rgba(255,255,255,0.08)" />
 
               <text x="14" y="196" fill="#64748B" font-size="8" font-family="monospace">GNSS SATELLITES</text>
-              <text class="live-sats-val" x="14" y="216" fill="var(--theme-accent)" font-size="9" font-family="monospace" font-weight="bold">0/0 SATS</text>
+              <text class="live-sats-val" x="14" y="216" fill="url(#elioAccentGrad)" font-size="9" font-family="monospace" font-weight="bold">0/0 SATS</text>
 
               <line x1="14" y1="236" x2="96" y2="236" stroke="rgba(255,255,255,0.08)" />
 
               <text x="14" y="258" fill="#64748B" font-size="8" font-family="monospace">TIRE TEMP (EST)</text>
-              <text x="14" y="278" fill="var(--theme-accent)" font-size="9" font-family="monospace" font-weight="bold">35°C ALL OPTIMAL</text>
+              <text x="14" y="278" fill="url(#elioAccentGrad)" font-size="9" font-family="monospace" font-weight="bold">35°C ALL OPTIMAL</text>
               <text x="14" y="296" fill="#64748B" font-size="7.5" font-family="monospace">HEADING: <tspan class="live-heading-val">N 0°</tspan></text>
             </g>
 
             <!-- CENTER CYBER SPEED BRACKET (130, 36, w=180, h=298) -->
             <g transform="translate(130, 36)">
               <polygon points="18,0 162,0 180,18 180,280 162,298 18,298 0,280 0,18" fill="rgba(6,10,20,0.92)" stroke="rgba(255,255,255,0.12)" stroke-width="1.8" />
-              <path d="M 18,0 L 162,0 M 18,298 L 162,298" stroke="var(--theme-accent)" stroke-width="3" />
+              <path d="M 18,0 L 162,0 M 18,298 L 162,298" stroke="url(#elioAccentGrad)" stroke-width="3" />
               
               <!-- Cyber corner calipers -->
-              <path d="M 8,24 L 8,8 L 24,8" fill="none" stroke="var(--theme-accent)" stroke-width="2" />
-              <path d="M 172,24 L 172,8 L 156,8" fill="none" stroke="var(--theme-accent)" stroke-width="2" />
-              <path d="M 8,274 L 8,290 L 24,290" fill="none" stroke="var(--theme-accent)" stroke-width="2" />
-              <path d="M 172,274 L 172,290 L 156,290" fill="none" stroke="var(--theme-accent)" stroke-width="2" />
+              <path d="M 8,24 L 8,8 L 24,8" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" />
+              <path d="M 172,24 L 172,8 L 156,8" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" />
+              <path d="M 8,274 L 8,290 L 24,290" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" />
+              <path d="M 172,274 L 172,290 L 156,290" fill="none" stroke="url(#elioAccentGrad)" stroke-width="2" />
               
               <circle cx="90" cy="149" r="75" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1.5" />
             </g>
@@ -2516,19 +2639,78 @@
       };
     }
 
+    // Warna solid = gradasi dengan dua warna yang sama.
     function applyCustomHex(hex) {
       playHarmonicChime(2);
-      const rgb = hexToRgb(hex);
+      applyThemeGradient(hex, hex, true);
+    }
+
+    function applyThemeGradient(c1, c2, save) {
+      c2 = c2 || c1;
+      const a = hexToRgb(c1);
+      const b = hexToRgb(c2);
       const root = document.documentElement;
-      
-      root.style.setProperty('--theme-accent', hex);
-      root.style.setProperty('--theme-accent-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
-      root.style.setProperty('--theme-glow', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`);
-      root.style.setProperty('--theme-bg-subtle', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.08)`);
-      root.style.setProperty('--theme-border', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35)`);
+
+      root.style.setProperty('--theme-accent', c1);
+      root.style.setProperty('--theme-accent-rgb', `${a.r}, ${a.g}, ${a.b}`);
+      root.style.setProperty('--theme-glow', `rgba(${a.r}, ${a.g}, ${a.b}, 0.5)`);
+      root.style.setProperty('--theme-bg-subtle', `rgba(${a.r}, ${a.g}, ${a.b}, 0.08)`);
+      root.style.setProperty('--theme-border', `rgba(${a.r}, ${a.g}, ${a.b}, 0.35)`);
+      root.style.setProperty('--theme-accent-2', c2);
+      root.style.setProperty('--theme-accent-2-rgb', `${b.r}, ${b.g}, ${b.b}`);
+      root.style.setProperty('--theme-gradient', `linear-gradient(135deg, ${c1}, ${c2})`);
 
       const cp = document.getElementById('colorPicker');
-      if (cp) cp.value = hex;
+      if (cp) cp.value = c1;
+      const g1 = document.getElementById('gradColor1');
+      if (g1) g1.value = c1;
+      const g2 = document.getElementById('gradColor2');
+      if (g2) g2.value = c2;
+
+      if (save) {
+        themeState.colors = [c1, c2];
+        saveThemeState();
+      }
+    }
+
+    /* Penyimpanan tema (warna, kartu, latar, gaya speedometer) agar tidak kembali ke default */
+    const THEME_KEY = 'elioTheme';
+    let themeState = {};
+    let themeRestoring = false;
+
+    function saveThemeState() {
+      if (themeRestoring) return;
+      try { localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); } catch (e) {}
+    }
+
+    function rememberThemeCall(fnName, stateKey) {
+      const original = window[fnName];
+      if (typeof original !== 'function') return;
+      window[fnName] = function (...args) {
+        const result = original.apply(this, args);
+        if (!themeRestoring) {
+          themeState[stateKey] = [fnName].concat(args);
+          saveThemeState();
+        }
+        return result;
+      };
+    }
+
+    function restoreThemeState() {
+      try { themeState = JSON.parse(localStorage.getItem(THEME_KEY) || '{}') || {}; } catch (e) { themeState = {}; }
+      themeRestoring = true;
+      try {
+        const colors = Array.isArray(themeState.colors) ? themeState.colors : ['#00E5FF', '#A855F7'];
+        applyThemeGradient(colors[0], colors[1], false);
+        ['card', 'bg'].forEach((key) => {
+          const call = themeState[key];
+          if (Array.isArray(call) && typeof window[call[0]] === 'function') window[call[0]].apply(null, call.slice(1));
+        });
+        const styleCall = themeState.speedo;
+        setSpeedometerStyle(Array.isArray(styleCall) && styleCall[1] ? styleCall[1] : 'lfa');
+      } finally {
+        themeRestoring = false;
+      }
     }
 
     /* CARD BACKGROUND CUSTOMIZER ENGINE */
@@ -2626,9 +2808,23 @@
 
     let currentHardwareGForce = 0.0;
     let currentDisplayedSpeed = 0;
+    // Efek reaktif kecepatan: cahaya gauge makin terang, lantai grid makin cepat mengalir.
+    let lastGridBucket = -1;
+    function applySpeedFx(speedKmh) {
+      const root = document.documentElement;
+      root.style.setProperty('--speed-ratio', Math.min(1, speedKmh / 160).toFixed(2));
+      // Durasi diubah per kelompok 10 km/h saja, supaya animasi tidak tersentak tiap update GPS.
+      const bucket = speedKmh < 3 ? 0 : Math.min(16, Math.ceil(speedKmh / 10));
+      if (bucket === lastGridBucket) return;
+      lastGridBucket = bucket;
+      root.style.setProperty('--grid-state', bucket === 0 ? 'paused' : 'running');
+      root.style.setProperty('--grid-duration', bucket === 0 ? '2s' : Math.max(0.22, 2.2 - bucket * 0.125).toFixed(2) + 's');
+    }
+
     function updateSpeed(val) {
       const numVal = Math.max(0, Math.min(260, parseInt(val, 10) || 0));
       currentDisplayedSpeed = numVal;
+      applySpeedFx(numVal);
       const useSimulatedG = isAutoDriveSimActive || !window.ElioNativeBridge;
       const gNumeric = useSimulatedG
         ? (numVal === 0 ? 0 : (0.05 + (numVal / 180 * 0.75)))
@@ -3721,19 +3917,19 @@
       }
     }
 
-    const gaugeStyleOrder = ['lfa', 'classic', 'hud', 'honda'];
-    const gaugeStyleNames = { lfa: 'Lexus LFA Digital', classic: 'Innova Classic Analog', hud: 'Minimalist HUD', honda: 'Honda Type R Cyber' };
-    let currentGaugeIdx = 0;
+    // Hanya gaya yang benar-benar ada di halaman (dulu 'classic' & 'hud' tidak ada -> speedometer hilang).
+    const gaugeStyleOrder = ['lfa', 'm3', 'mazda', 'honda'];
+    const gaugeStyleNames = { lfa: 'Lexus F-Sport', m3: 'BMW M3', mazda: 'Mazda KODO', honda: 'Honda Type R' };
 
     function cycleSpeedometerStyle() {
-      currentGaugeIdx = (currentGaugeIdx + 1) % gaugeStyleOrder.length;
-      const nextStyle = gaugeStyleOrder[currentGaugeIdx];
+      const idx = gaugeStyleOrder.indexOf(currentSpeedoStyle);
+      const nextStyle = gaugeStyleOrder[(idx + 1) % gaugeStyleOrder.length];
       setSpeedometerStyle(nextStyle);
       showCockpitToast('Speedometer: ' + (gaugeStyleNames[nextStyle] || nextStyle));
     }
 
     // Bind tap-to-switch-style on all 4 speedometer cluster containers
-    ['cluster_lfa', 'cluster_classic', 'cluster_hud', 'cluster_honda'].forEach(function (cid) {
+    ['cluster_lfa', 'cluster_m3', 'cluster_mazda', 'cluster_honda'].forEach(function (cid) {
       const el = document.getElementById(cid);
       if (el) {
         el.classList.add('clickable-card');
@@ -3770,8 +3966,12 @@
     })();
 
     // Initial setup (Real Hardware Sensor Mode on Android, Simulator only on Browser Preview)
-    applyCustomHex('#00E5FF');
-    setSpeedometerStyle('lfa');
+    rememberThemeCall('setCardPreset', 'card');
+    rememberThemeCall('applyCardCustomColor', 'card');
+    rememberThemeCall('setBgPreset', 'bg');
+    rememberThemeCall('applyBgCustomColor', 'bg');
+    rememberThemeCall('setSpeedometerStyle', 'speedo');
+    restoreThemeState();
     updateSpeed(0);
     initDraggableHud();
 
