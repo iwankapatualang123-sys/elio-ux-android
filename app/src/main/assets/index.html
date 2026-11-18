@@ -459,6 +459,35 @@
       clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
     }
 
+    /* Pencarian lokasi di peta */
+    .map-search-bar {
+      display: flex; align-items: center; gap: 6px; padding: 4px;
+      background: rgba(2, 6, 23, 0.92); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px;
+    }
+    .map-search-input {
+      flex: 1 1 auto; min-width: 0; height: 36px; padding: 0 10px;
+      background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+      color: #fff; font-size: 14px; outline: none;
+    }
+    .map-search-input:focus { border-color: var(--theme-accent); }
+    .map-search-input::placeholder { color: #64748b; }
+    .map-search-btn, .map-nav-btn, .map-dest button {
+      height: 36px; min-width: 40px; padding: 0 12px; border: 0; border-radius: 8px;
+      font-size: 13px; font-weight: 700; color: #fff; background: #2563eb; cursor: pointer;
+    }
+    .map-recent { display: flex; flex-wrap: wrap; gap: 4px; }
+    .map-chip {
+      max-width: 9.5rem; height: 30px; padding: 0 10px; border-radius: 8px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #e2e8f0; cursor: pointer;
+      background: rgba(2, 6, 23, 0.85); border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .map-dest {
+      display: flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 4px 4px 10px;
+      background: rgba(2, 6, 23, 0.92); border: 1px solid rgba(16, 185, 129, 0.45); border-radius: 10px;
+    }
+    .map-dest-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a7f3d0; font-size: 13px; font-weight: 700; }
+    .map-dest button.map-dest-secondary { background: rgba(255, 255, 255, 0.12); }
+
     /* Mode Hemat: matikan animasi & efek glow yang terus digambar ulang (berat di tablet lama) */
     body.eco-mode *, body.eco-mode *::before, body.eco-mode *::after {
       animation: none !important;
@@ -1878,8 +1907,8 @@
 
         <!-- Real Embedded YouTube Player (HTTPS Origin + Strict Referrer Policy prevents Error 153) -->
         <div class="relative flex-1 min-h-0 my-1.5 flex flex-col justify-center items-center overflow-hidden rounded-lg bg-black border border-white/10 shadow-inner">
-          <iframe id="ytTileIframe" 
-                  src="https://www.youtube.com/embed/jfKfPfyJRdk?playsinline=1&rel=0&modestbranding=1" 
+          <iframe id="ytTileIframe"
+                  src="about:blank"
                   referrerpolicy="strict-origin-when-cross-origin"
                   class="w-full h-full border-0 rounded-lg" 
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
@@ -1928,34 +1957,22 @@
                   loading="lazy">
           </iframe>
 
-          <!-- Floating Turn-by-Turn Card on top of Map -->
-          <div class="relative z-10 m-2 bg-slate-950/90 backdrop-blur-md border border-white/15 rounded-lg p-1.5 flex items-center justify-between shadow-xl pointer-events-none">
-            <div class="flex items-center gap-2">
-              <div class="w-6 h-6 rounded-md bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 font-bold text-xs">
-                ➔
-              </div>
-              <div class="truncate">
-                <div class="text-[10px] font-bold text-white truncate" id="mapTargetTurnText">Dalam 250m: Belok Kanan</div>
-                <div class="text-[8px] text-slate-400" id="mapTargetRoadText">Jl. Gatot Subroto (Pintu Tol Semanggi 2)</div>
-              </div>
+          <!-- Pencarian lokasi (menggantikan kartu petunjuk belok palsu) -->
+          <form onsubmit="event.preventDefault(); searchMapPlace(this.elements.q.value); this.elements.q.blur();" class="map-search-bar relative z-10 m-2">
+            <input name="q" data-map-search type="search" enterkeyhint="search" autocomplete="off" placeholder="Cari lokasi atau alamat…" class="map-search-input">
+            <button type="submit" class="tactile-btn map-search-btn" title="Cari lokasi">🔍</button>
+            <div class="map-translucent-hud rounded-md px-1.5 py-0.5 text-[8px] font-mono text-cyan-300 font-bold shrink-0">
+              <span id="miniMapSpeed">0</span> KM/H
             </div>
-            
-            <div class="map-translucent-hud rounded-md px-1.5 py-0.5 text-[8px] font-mono text-cyan-300 font-bold">
-              <span id="miniMapSpeed">84</span> KM/H
-            </div>
-          </div>
+          </form>
 
-          <!-- Bottom Route Shortcuts & App Opener -->
-          <div class="relative z-10 m-2 mt-auto flex items-center justify-between text-[8px] font-mono">
-            <div class="flex items-center gap-1 bg-black/80 p-0.5 rounded-lg border border-white/10">
-              <button onclick="setMapLocation(-6.2088, 106.8456, 'Jakarta - Tol Semanggi 2')" class="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-slate-200">Semanggi</button>
-              <button onclick="setMapLocation(-6.8905, 107.6100, 'Bandung - Gerbang Tol Pasteur')" class="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-slate-200">Pasteur</button>
-              <button onclick="setMapLocation(-7.2575, 112.7521, 'Surabaya - Gubeng')" class="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-slate-200">Surabaya</button>
+          <!-- Tujuan terpilih, riwayat pencarian, dan tombol navigasi -->
+          <div class="relative z-10 m-2 mt-auto flex items-end justify-between gap-2">
+            <div class="flex flex-col gap-1 min-w-0">
+              <div data-dest class="hidden"></div>
+              <div data-recent-places class="map-recent"></div>
             </div>
-
-            <button onclick="openOfficialGoogleMaps()" class="tactile-btn flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-md" title="Navigasi suara di aplikasi Google Maps">
-              <span>🧭 Navigasi</span>
-            </button>
+            <button onclick="openOfficialGoogleMaps()" class="tactile-btn map-nav-btn shrink-0" title="Navigasi suara di aplikasi Google Maps">🧭 Navigasi</button>
           </div>
         </div>
 
@@ -2034,9 +2051,7 @@
             </button>
             <div class="flex items-center gap-1.5">
               <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-              <span class="font-bold text-xs text-white">Google Maps Navigation</span>
-              <span class="text-[9px] text-slate-400 font-mono hidden sm:inline">| Tol Semanggi ➔ Cawang</span>
-            </div>
+              <span class="font-bold text-xs text-white">Google Maps Navigation</span>            </div>
           </div>
 
           <!-- HUD Transparency & Position Customizers -->
@@ -2075,18 +2090,10 @@
 
           <!-- Top Turn-by-Turn Instruction Banner (Floating on Map) -->
           <div class="absolute top-2.5 left-3 right-3 z-20 flex items-center justify-between gap-3 pointer-events-none">
-            <div class="bg-slate-900/90 backdrop-blur-md border border-white/15 rounded-xl p-2 flex items-center gap-3 shadow-xl pointer-events-auto max-w-md">
-              <div class="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-lg">
-                <svg class="w-5 h-5 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-              </div>
-              <div class="truncate">
-                <div class="text-[11px] font-black text-white flex items-center gap-1.5">
-                  <span>Dalam 250m: Belok Kanan</span>
-                  <span class="text-[8px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-mono font-bold">LANE 3</span>
-                </div>
-                <div class="text-[9px] text-slate-300 truncate">Pintu Tol Semanggi 2 • Menuju Cawang / TMII</div>
-              </div>
-            </div>
+            <form onsubmit="event.preventDefault(); searchMapPlace(this.elements.q.value); this.elements.q.blur();" class="map-search-bar pointer-events-auto" style="flex: 1 1 auto; max-width: 28rem;">
+              <input name="q" data-map-search type="search" enterkeyhint="search" autocomplete="off" placeholder="Cari lokasi atau alamat…" class="map-search-input">
+              <button type="submit" class="tactile-btn map-search-btn" title="Cari lokasi">🔍</button>
+            </form>
 
             <!-- Quick Map Action Icons (North, Voice, Re-center GPS) -->
             <div class="flex items-center gap-1.5 pointer-events-auto">
@@ -2159,19 +2166,10 @@
 
           </div>
 
-          <!-- Floating Bottom-Right ETA Glass Card -->
-          <div class="absolute bottom-2.5 right-3 z-20 bg-slate-950/80 backdrop-blur-md border border-white/15 px-3 py-2 rounded-xl text-right shadow-2xl flex flex-col justify-between max-w-[200px]">
-            <div class="flex items-center justify-end gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span class="text-[9px] font-mono text-emerald-400 font-bold">RUTE TERCEPAT</span>
-            </div>
-            <div class="my-0.5">
-              <div class="font-mono font-black text-emerald-400 text-base leading-none">16 menit</div>
-              <div class="text-[9px] text-slate-300 font-mono">11.8 km tersisa</div>
-            </div>
-            <div class="text-[8px] text-slate-400 border-t border-white/10 pt-1 mt-0.5">
-              Tiba 21:02 via Tol Semanggi 2
-            </div>
+          <!-- Tujuan terpilih & riwayat pencarian (menggantikan kartu "rute tercepat" palsu) -->
+          <div class="absolute bottom-2.5 right-3 z-20 flex flex-col items-end gap-1.5" style="max-width: 20rem;">
+            <div data-dest class="hidden"></div>
+            <div data-recent-places class="map-recent" style="justify-content: flex-end;"></div>
           </div>
 
         </div>
@@ -2713,8 +2711,12 @@
     let currentMapEmbedUrl = 'https://maps.google.com/maps?q=-6.2088,106.8456&z=15&output=embed';
 
     function getCurrentYtEmbedUrl(autoplay) {
+      // Beri tahu YouTube siapa yang menyematkan (origin aplikasi), selain lewat header Referer.
+      const originParams = location.protocol === 'https:'
+        ? '&origin=' + encodeURIComponent(location.origin) + '&widget_referrer=' + encodeURIComponent(location.origin)
+        : '';
       return 'https://www.youtube.com/embed/' + encodeURIComponent(currentYtVideoId) +
-        '?playsinline=1&rel=0&modestbranding=1' + (autoplay ? '&autoplay=1' : '');
+        '?playsinline=1&rel=0&modestbranding=1' + (autoplay ? '&autoplay=1' : '') + originParams;
     }
 
     function switchFocus(target) {
@@ -3383,10 +3385,10 @@
       playTactileClick(1100);
       if (lastRealLat !== null && lastRealLon !== null) {
         setMapLocation(lastRealLat, lastRealLon, 'Posisi Mobil (' + lastRealLat.toFixed(4) + ', ' + lastRealLon.toFixed(4) + ')');
+        showCockpitToast('Orientasi Peta menghadap Utara (0°)');
       } else {
-        setMapLocation(-6.2088, 106.8456, 'Arah Utara Direset');
+        showCockpitToast('Menunggu sinyal GPS...');
       }
-      showCockpitToast('Orientasi Peta menghadap Utara (0°)');
     }
 
     /* ==========================================================================
@@ -3548,12 +3550,122 @@
     function openOfficialGoogleMaps() {
       playTactileClick(1100);
       if (window.ElioNativeBridge && window.ElioNativeBridge.openGoogleMapsIntent) {
-        // Kosong = buka Maps di posisi mobil, lalu pengguna memilih tujuan sendiri.
-        // (Dulu posisi mobil dikirim sebagai tujuan, jadi Maps menavigasi ke tempat sendiri.)
-        window.ElioNativeBridge.openGoogleMapsIntent('');
+        // Ada tujuan hasil pencarian -> langsung navigasi suara ke sana.
+        // Kosong -> buka Maps di posisi mobil, pengguna pilih tujuan di sana.
+        window.ElioNativeBridge.openGoogleMapsIntent(mapDestination || '');
+      } else if (mapDestination) {
+        window.open('https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(mapDestination), '_blank');
       } else {
         window.open('https://maps.google.com/', '_blank');
       }
+    }
+
+    /* ==========================================================================
+       PENCARIAN LOKASI & TUJUAN (peta embed Google, tanpa API key)
+       ========================================================================== */
+    let mapDestination = null;
+    const RECENT_PLACES_KEY = 'elioRecentPlaces';
+
+    function showMapEmbed(url) {
+      currentMapEmbedUrl = url;
+      const tile = document.getElementById('liveMapIframe');
+      const wide = document.getElementById('widescreenLiveMapIframe');
+      if (currentFocus === 'maps') {
+        if (wide) wide.src = url;
+      } else if (currentFocus === 'dashboard') {
+        if (tile) tile.src = url;
+      }
+    }
+
+    function searchMapPlace(query) {
+      const q = (query || '').trim();
+      if (!q) return;
+      playTactileClick(1000);
+      mapDestination = q;
+      showMapEmbed('https://maps.google.com/maps?q=' + encodeURIComponent(q) + '&z=15&output=embed');
+      saveRecentPlace(q);
+      renderMapDestination();
+      document.querySelectorAll('input[data-map-search]').forEach((input) => { input.value = q; });
+    }
+
+    function showRouteToDestination() {
+      if (!mapDestination) return;
+      if (lastRealLat === null || lastRealLon === null) {
+        showCockpitToast('Menunggu sinyal GPS untuk menampilkan rute');
+        return;
+      }
+      playTactileClick(1000);
+      showMapEmbed('https://maps.google.com/maps?saddr=' + lastRealLat + ',' + lastRealLon +
+        '&daddr=' + encodeURIComponent(mapDestination) + '&output=embed');
+    }
+
+    function clearMapDestination() {
+      playTactileClick(900);
+      mapDestination = null;
+      renderMapDestination();
+      document.querySelectorAll('input[data-map-search]').forEach((input) => { input.value = ''; });
+      if (lastRealLat !== null && lastRealLon !== null) {
+        setMapLocation(lastRealLat, lastRealLon, 'Posisi Mobil');
+      }
+    }
+
+    function loadRecentPlaces() {
+      try {
+        const list = JSON.parse(localStorage.getItem(RECENT_PLACES_KEY) || '[]');
+        return Array.isArray(list) ? list.filter((x) => typeof x === 'string' && x.trim()) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveRecentPlace(q) {
+      const list = [q].concat(loadRecentPlaces().filter((x) => x.toLowerCase() !== q.toLowerCase())).slice(0, 5);
+      try { localStorage.setItem(RECENT_PLACES_KEY, JSON.stringify(list)); } catch (e) {}
+      renderRecentPlaces();
+    }
+
+    function renderRecentPlaces() {
+      const list = loadRecentPlaces();
+      document.querySelectorAll('[data-recent-places]').forEach((box) => {
+        box.textContent = '';
+        list.forEach((q) => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'tactile-btn map-chip';
+          chip.textContent = '🕘 ' + q;
+          chip.title = q;
+          chip.addEventListener('click', () => searchMapPlace(q));
+          box.appendChild(chip);
+        });
+      });
+    }
+
+    function makeMapButton(label, onClick, secondary) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tactile-btn' + (secondary ? ' map-dest-secondary' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', onClick);
+      return btn;
+    }
+
+    function renderMapDestination() {
+      document.querySelectorAll('[data-dest]').forEach((box) => {
+        box.textContent = '';
+        if (!mapDestination) {
+          box.className = 'hidden';
+          return;
+        }
+        box.className = 'map-dest';
+        const name = document.createElement('span');
+        name.className = 'map-dest-name';
+        name.textContent = '📍 ' + mapDestination;
+        name.title = mapDestination;
+        box.appendChild(name);
+        box.appendChild(makeMapButton('Rute', showRouteToDestination, true));
+        box.appendChild(makeMapButton('🧭 Navigasi', openOfficialGoogleMaps, false));
+        box.appendChild(makeMapButton('✕', clearMapDestination, true));
+      });
     }
 
     /* ==========================================================================
@@ -3637,7 +3749,7 @@
       // Peta embed hanya diarahkan sekali saat GPS pertama terkunci. Memuat ulang peta selama
       // berkendara membuat tablet lama tersendat; ketuk "📍 Lokasi" untuk memusatkan ulang,
       // atau "🧭 Navigasi" untuk app Google Maps asli.
-      if (lastMapEmbedLat === null) {
+      if (lastMapEmbedLat === null && !mapDestination) {
         setMapLocation(lat, lon, 'GPS Live (' + lat.toFixed(4) + ', ' + lon.toFixed(4) + ')');
       }
     };
@@ -3943,6 +4055,12 @@
       startAutoDriveSimulation();
       locateRealTabletGps(false);
     }
+
+    // Muat pemutar YouTube setelah semua variabel siap (origin aplikasi ikut di URL embed)
+    const ytTileInit = document.getElementById('ytTileIframe');
+    if (ytTileInit && currentFocus === 'dashboard') ytTileInit.src = getCurrentYtEmbedUrl(false);
+    renderRecentPlaces();
+    renderMapDestination();
 
   </script>
 </body>

@@ -61,9 +61,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
         private const val SENSOR_PUSH_INTERVAL_MS = 350L
-        private const val BASE_ORIGIN_URL = "https://www.youtube.com/"
-        private const val ENTRY_URL = "https://www.youtube.com/elioux-launcher.html"
     }
+
+    // Halaman lokal disajikan dari origin https berbasis ID aplikasi (format yang diminta YouTube
+    // untuk embed di WebView). Tanpa origin -> Error 153; mengaku youtube.com -> Error 152.
+    private val launcherHost: String by lazy { packageName.lowercase(Locale.ROOT) }
+    private val launcherOrigin: String by lazy { "https://$launcherHost/" }
 
     private lateinit var rootContainer: FrameLayout
     private lateinit var webView: WebView
@@ -250,16 +253,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                     val uri = request?.url ?: return null
                     val host = uri.host ?: ""
                     val path = uri.path ?: ""
-                    if (uri.scheme == "https" &&
-                        ((host.equals("www.youtube.com", ignoreCase = true) && path == "/elioux-launcher.html") ||
-                         (host.equals("elioux.app", ignoreCase = true) && (path.isEmpty() || path == "/" || path == "/index.html")))
-                    ) {
-                        return try {
-                            val stream = assets.open("index.html")
-                            WebResourceResponse("text/html", "UTF-8", stream)
-                        } catch (_: Exception) {
-                            null
+                    if (uri.scheme == "https" && host.equals(launcherHost, ignoreCase = true)) {
+                        if (path.isEmpty() || path == "/" || path == "/index.html") {
+                            return try {
+                                val stream = assets.open("index.html")
+                                WebResourceResponse("text/html", "UTF-8", stream)
+                            } catch (_: Exception) {
+                                null
+                            }
                         }
+                        // Domain ini fiktif: jangan biarkan permintaan lain (mis. favicon) keluar ke internet
+                        return WebResourceResponse(
+                            "text/plain", "UTF-8", 404, "Not Found", emptyMap(),
+                            java.io.ByteArrayInputStream(ByteArray(0))
+                        )
                     }
                     return super.shouldInterceptRequest(view, request)
                 }
@@ -281,9 +288,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                         // Never let external watch/maps links hijack the main launcher frame
                         if (request.isForMainFrame) {
                             val host = uri.host?.lowercase(Locale.ROOT) ?: ""
-                            val path = uri.path ?: ""
-                            val isLauncherEntry = (host == "www.youtube.com" && path == "/elioux-launcher.html") || host == "elioux.app"
-                            if (!isLauncherEntry) {
+                            if (host != launcherHost) {
                                 try {
                                     startActivity(Intent(Intent.ACTION_VIEW, uri))
                                 } catch (_: Exception) {}
@@ -357,11 +362,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
 
     private fun loadHtmlWithHttpsOrigin() {
         try {
-            webView.loadUrl(ENTRY_URL)
+            webView.loadUrl(launcherOrigin + "index.html")
         } catch (_: Exception) {
             try {
                 val html = assets.open("index.html").bufferedReader(Charsets.UTF_8).use { it.readText() }
-                webView.loadDataWithBaseURL(BASE_ORIGIN_URL, html, "text/html", "UTF-8", null)
+                webView.loadDataWithBaseURL(launcherOrigin, html, "text/html", "UTF-8", null)
             } catch (_: Exception) {
                 webView.loadUrl("file:///android_asset/index.html")
             }
