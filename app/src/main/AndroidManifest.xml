@@ -42,5 +42,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Auto-nyala saat HP boot/restart (untuk pemakaian sebagai head unit mobil) -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 </manifest>
