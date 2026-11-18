@@ -450,27 +450,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
 
         locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
 
-        // 1. Register LocationManager GPS + Network providers
+        // 1. Seed with last known location immediately if available
         try {
-            if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
-                locationManager?.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    500L,
-                    0f,
-                    this,
-                    Looper.getMainLooper()
-                )
-            }
-            if (locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true) {
-                locationManager?.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER,
-                    2000L,
-                    2f,
-                    this,
-                    Looper.getMainLooper()
-                )
-            }
-            // Seed with last known location immediately if available
             val lastGps = locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
             val lastNet = locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
             val bestLast = when {
@@ -508,7 +489,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             }
         } catch (_: Exception) {}
 
-        // 3. Register Google Play Services FusedLocationProviderClient for fast, smooth speed updates
+        // 3. Satu sumber lokasi saja (Fused, 1x/detik). Dulu GPS + Network + Fused jalan bersamaan
+        //    dan membanjiri thread utama sampai ~6 update/detik di tablet lama.
         try {
             if (fusedLocationClient == null) {
                 fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -520,15 +502,33 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                     }
                 }
             }
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 500L)
-                .setMinUpdateIntervalMillis(250L)
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)
+                .setMinUpdateIntervalMillis(1000L)
                 .setMinUpdateDistanceMeters(0f)
                 .build()
-            fusedLocationClient?.requestLocationUpdates(
+            fusedLocationClient!!.requestLocationUpdates(
                 request,
                 fusedLocationCallback!!,
                 Looper.getMainLooper()
-            )
+            ).addOnFailureListener { startLegacyGpsUpdates() }
+        } catch (_: Exception) {
+            startLegacyGpsUpdates()
+        }
+    }
+
+    // Cadangan bila Google Play Services tidak tersedia di perangkat.
+    @SuppressLint("MissingPermission")
+    private fun startLegacyGpsUpdates() {
+        try {
+            if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
+                locationManager?.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    1000L,
+                    0f,
+                    this,
+                    Looper.getMainLooper()
+                )
+            }
         } catch (_: Exception) {}
     }
 

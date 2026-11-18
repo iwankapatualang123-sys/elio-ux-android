@@ -251,6 +251,7 @@
       .sm\:rounded-2xl { border-radius: 1rem; }
       .sm\:text-4xl { font-size: 2.25rem; line-height: 2.5rem; } .sm\:text-7xl { font-size: 4.5rem; line-height: 1; }
     }
+    .text-blue-200 { color: #bfdbfe; }
   </style>
   <style>
     @keyframes pulse-glow {
@@ -456,6 +457,15 @@
     }
     .hud-cut-card {
       clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    }
+
+    /* Mode Hemat: matikan animasi & efek glow yang terus digambar ulang (berat di tablet lama) */
+    body.eco-mode *, body.eco-mode *::before, body.eco-mode *::after {
+      animation: none !important;
+      transition: none !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
     }
   </style>
 </head>
@@ -938,6 +948,15 @@
 
       <!-- TAB 3: ⚡ DAYA ACC & SIMULASI -->
       <div id="settingsTab_power" class="hidden space-y-2.5 overflow-y-auto flex-1 pr-1">
+        <!-- Mode Hemat Performa -->
+        <div class="bg-black/40 p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold text-white font-mono">MODE HEMAT (TABLET / HP LAMA)</span>
+            <p class="text-[8.5px] text-slate-400">Matikan animasi & efek glow supaya layar lebih ringan, tidak cepat panas, dan tombol responsif.</p>
+          </div>
+          <button type="button" id="ecoModeBtn" onclick="toggleEcoMode()" class="tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer">🍃 Mode Hemat: OFF</button>
+        </div>
+
         <!-- GAS Speed Simulation Slider -->
         <div class="bg-black/40 p-2.5 rounded-xl border border-white/10 space-y-2">
           <div class="flex items-center justify-between">
@@ -1934,8 +1953,8 @@
               <button onclick="setMapLocation(-7.2575, 112.7521, 'Surabaya - Gubeng')" class="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-slate-200">Surabaya</button>
             </div>
 
-            <button onclick="openOfficialGoogleMaps()" class="tactile-btn flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-md" title="Buka di Aplikasi Google Maps Resmi Android">
-              <span>Buka App ↗</span>
+            <button onclick="openOfficialGoogleMaps()" class="tactile-btn flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-md" title="Navigasi suara di aplikasi Google Maps">
+              <span>🧭 Navigasi</span>
             </button>
           </div>
         </div>
@@ -2042,7 +2061,8 @@
               <button onclick="snapMapHud('tr')" class="px-1.5 py-0.2 rounded hover:bg-white/15 text-slate-300 hover:text-white" title="Kanan Atas">↗ Atas</button>
             </div>
 
-            <span class="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded hidden sm:inline">Tiba 21:02</span>
+            <button type="button" onclick="locateRealTabletGps(true)" class="tactile-btn px-2 py-0.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 text-[10px] font-bold">📍 Lokasi</button>
+            <button type="button" onclick="openOfficialGoogleMaps()" class="tactile-btn px-2.5 py-0.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold" title="Navigasi suara di aplikasi Google Maps">🧭 Navigasi</button>
           </div>
         </div>
 
@@ -3528,11 +3548,9 @@
     function openOfficialGoogleMaps() {
       playTactileClick(1100);
       if (window.ElioNativeBridge && window.ElioNativeBridge.openGoogleMapsIntent) {
-        if (lastRealLat !== null && lastRealLon !== null) {
-          window.ElioNativeBridge.openGoogleMapsIntent(lastRealLat + ',' + lastRealLon);
-        } else {
-          window.ElioNativeBridge.openGoogleMapsIntent('');
-        }
+        // Kosong = buka Maps di posisi mobil, lalu pengguna memilih tujuan sendiri.
+        // (Dulu posisi mobil dikirim sebagai tujuan, jadi Maps menavigasi ke tempat sendiri.)
+        window.ElioNativeBridge.openGoogleMapsIntent('');
       } else {
         window.open('https://maps.google.com/', '_blank');
       }
@@ -3616,11 +3634,10 @@
       const theaterHeadAlt = document.getElementById('theaterHeadingAlt');
       if (theaterHeadAlt) theaterHeadAlt.textContent = compassText + ' • ' + altStr + 'm';
 
-      // Perbarui posisi peta otomatis maksimal 1x per 25 detik atau jika berpindah > ~200m
-      const movedFar = lastMapEmbedLat === null ||
-        Math.abs(lat - lastMapEmbedLat) > 0.002 ||
-        Math.abs(lon - lastMapEmbedLon) > 0.002;
-      if (movedFar && (Date.now() - lastMapEmbedAt > 25000)) {
+      // Peta embed hanya diarahkan sekali saat GPS pertama terkunci. Memuat ulang peta selama
+      // berkendara membuat tablet lama tersendat; ketuk "📍 Lokasi" untuk memusatkan ulang,
+      // atau "🧭 Navigasi" untuk app Google Maps asli.
+      if (lastMapEmbedLat === null) {
         setMapLocation(lat, lon, 'GPS Live (' + lat.toFixed(4) + ', ' + lon.toFixed(4) + ')');
       }
     };
@@ -3876,6 +3893,33 @@
         el.addEventListener('click', cycleSpeedometerStyle);
       }
     });
+
+    function applyEcoMode(on, save) {
+      document.body.classList.toggle('eco-mode', on);
+      const btn = document.getElementById('ecoModeBtn');
+      if (btn) {
+        btn.textContent = on ? '🍃 Mode Hemat: ON' : '🍃 Mode Hemat: OFF';
+        btn.className = 'tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer ' +
+          (on ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-white/10 text-slate-300 border-white/20');
+      }
+      if (save) {
+        try { localStorage.setItem('elioEcoMode', on ? '1' : '0'); } catch (e) {}
+      }
+    }
+
+    function toggleEcoMode() {
+      const on = !document.body.classList.contains('eco-mode');
+      applyEcoMode(on, true);
+      showCockpitToast(on ? 'Mode Hemat aktif' : 'Mode Hemat mati');
+    }
+
+    // Belum pernah dipilih: nyalakan otomatis di perangkat RAM ≤ 2 GB (mis. Galaxy Tab A 2016).
+    (function initEcoMode() {
+      let saved = null;
+      try { saved = localStorage.getItem('elioEcoMode'); } catch (e) {}
+      const lowRam = typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 2;
+      applyEcoMode(saved === null ? lowRam : saved === '1', false);
+    })();
 
     // Initial setup (Real Hardware Sensor Mode on Android, Simulator only on Browser Preview)
     applyCustomHex('#00E5FF');
