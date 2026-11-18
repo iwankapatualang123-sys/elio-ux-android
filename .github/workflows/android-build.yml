@@ -21,6 +21,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Prepare environment file
+        run: |
+          if [ ! -f .env ]; then cp .env.example .env; fi
+
       - name: Install Android command line tools
         run: |
           SDK_ROOT="$HOME/android-sdk"
@@ -36,12 +40,12 @@ jobs:
       - name: Install required Android SDK packages
         run: |
           yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.5
+          gradle-version: 9.3.1
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
@@ -62,6 +66,6 @@ jobs:
           name: Elio UX - Build Terbaru
           body: |
             APK hasil build otomatis dari commit terbaru di cabang `main`.
-            Unduh `ElioUX-debug.apk` di bawah, lalu pasang di HP Android (izinkan "Install dari sumber tidak dikenal" saat diminta).
+            Unduh `ElioUX-debug.apk` di bawah, lalu pasang di Tablet / HP Android Samsung Galaxy Tab A (izinkan "Install dari sumber tidak dikenal" saat diminta).
           prerelease: true
           files: ElioUX-debug.apk

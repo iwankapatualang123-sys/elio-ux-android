@@ -79,17 +79,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 allowFileAccess = true
                 allowContentAccess = true
                 cacheMode = WebSettings.LOAD_DEFAULT
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                javaScriptCanOpenWindowsAutomatically = true
-                // Samarkan penanda "WebView" di User-Agent agar YouTube menganggap ini
-                // browser mobile biasa (bukan WebView custom yang dibatasi fiturnya).
-                userAgentString = userAgentString.replace("; wv", "")
             }
-
-            // YouTube embed butuh cookie pihak ketiga untuk bisa inisialisasi player-nya
-            // di dalam iframe. Android WebView mematikan ini secara default sejak Lollipop.
-            CookieManager.getInstance().setAcceptCookie(true)
-            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
             webChromeClient = object : WebChromeClient() {
                 override fun onGeolocationPermissionsShowPrompt(
