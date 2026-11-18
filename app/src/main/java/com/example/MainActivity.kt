@@ -68,8 +68,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     private val launcherHost: String by lazy { packageName.lowercase(Locale.ROOT) }
     private val launcherOrigin: String by lazy { "https://$launcherHost/" }
 
-    private lateinit var rootContainer: TouchRouterLayout
-    private var nativeMap: NativeMapController? = null
+    private lateinit var rootContainer: FrameLayout
     private lateinit var webView: WebView
     private var customFullscreenView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
@@ -157,7 +156,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         hideSystemUI()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        rootContainer = TouchRouterLayout(this).apply {
+        rootContainer = FrameLayout(this).apply {
             setBackgroundColor(android.graphics.Color.parseColor("#020408"))
         }
 
@@ -166,8 +165,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            // Transparan agar peta native di belakang terlihat lewat kartu peta yang "dilubangi".
-            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            setBackgroundColor(android.graphics.Color.parseColor("#020408"))
             setLayerType(View.LAYER_TYPE_HARDWARE, null)
             isFocusable = true
             isFocusableInTouchMode = true
@@ -319,14 +317,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         }
 
         rootContainer.addView(webView)
-        nativeMap = NativeMapController.create(this, rootContainer, savedInstanceState) { evaluateJs(it) }
-        if (nativeMap != null) {
-            rootContainer.hitTester = { x, y, done ->
-                webView.evaluateJavascript(
-                    "window.__elioMapHitTest ? window.__elioMapHitTest($x, $y) : false"
-                ) { result -> done(result == "true") }
-            }
-        }
         setContentView(rootContainer)
         webView.requestFocus()
 
@@ -603,7 +593,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         }
 
         pushGpsTelemetry()
-        nativeMap?.onLocation(location, currentGpsSpeedKmh)
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -801,15 +790,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         if (hasFocus) hideSystemUI()
     }
 
-    override fun onStart() {
-        super.onStart()
-        nativeMap?.onStart()
-    }
-
     override fun onResume() {
         super.onResume()
         webView.onResume()
-        nativeMap?.onResume()
         registerSensors()
         startLocationUpdates()
         pushAllHardwareSnapshots()
@@ -817,27 +800,18 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
 
     override fun onPause() {
         super.onPause()
-        webView.onPause()
-        nativeMap?.onPause()
+        // Split screen di Android 8.1: saat jari memakai app di sebelah (Maps/YouTube), Elio
+        // dianggap "pause" padahal masih terlihat. Speedometer harus tetap hidup.
+        if (!isInMultiWindowMode) webView.onPause()
     }
 
-    override fun onStop() {
-        super.onStop()
-        nativeMap?.onStop()
-    }
-
-    override fun onLowMemory() {
-        super.onLowMemory()
-        nativeMap?.onLowMemory()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        nativeMap?.onSaveInstanceState(outState)
+    override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig)
+        if (isInMultiWindowMode) webView.onResume()
+        if (!isInMultiWindowMode) hideSystemUI()
     }
 
     override fun onDestroy() {
-        nativeMap?.onDestroy()
         super.onDestroy()
         sensorManager?.unregisterListener(this)
         try { locationManager?.removeUpdates(this) } catch (_: Exception) {}
@@ -860,41 +834,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
 
         @JavascriptInterface
         fun isAccOn(): Boolean = activity.isAccPowerOn
-
-        @JavascriptInterface
-        fun isNativeMapAvailable(): Boolean = activity.nativeMap != null
-
-        @JavascriptInterface
-        fun setNativeMapRect(x: Int, y: Int, w: Int, h: Int) {
-            activity.mainHandler.post { activity.nativeMap?.setRect(x, y, w, h) }
-        }
-
-        @JavascriptInterface
-        fun recenterNativeMap() {
-            activity.mainHandler.post { activity.nativeMap?.recenter() }
-        }
-
-        @JavascriptInterface
-        fun searchNativeMap(query: String) {
-            activity.mainHandler.post { activity.nativeMap?.search(query) }
-        }
-
-        @JavascriptInterface
-        fun clearNativeMapSearch() {
-            activity.mainHandler.post { activity.nativeMap?.clearSearch() }
-        }
-
-        @JavascriptInterface
-        fun openGoogleMapsRoute(destination: String) {
-            val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=" + Uri.encode(destination))
-            try {
-                activity.startActivity(Intent(Intent.ACTION_VIEW, uri).setPackage("com.google.android.apps.maps"))
-            } catch (_: Exception) {
-                try {
-                    activity.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                } catch (_: Exception) {}
-            }
-        }
 
         @JavascriptInterface
         fun requestSensorSync() {

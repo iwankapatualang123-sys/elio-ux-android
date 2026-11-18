@@ -11,13 +11,12 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.elioux.launcher"
+    // ID terpisah dari Elio UX lama supaya terpasang berdampingan, tidak menimpa.
+    applicationId = "com.aistudio.elioux.speedo"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
     versionName = "1.0"
-    // Mesin peta MapLibre berisi library native per arsitektur CPU: HP/tablet ARM + emulator x86_64.
-    ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64") }
   }
 
   // Do not remove or modify these signingConfigs. They are necessary for building, installing,
@@ -79,5 +78,4 @@ dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.appcompat)
   implementation(libs.play.services.location)
-  implementation(libs.maplibre.android)
 }

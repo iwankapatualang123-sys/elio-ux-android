@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, speedometer-only ]
   workflow_dispatch:
 
 permissions:
@@ -63,22 +63,36 @@ jobs:
           ELIO_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
         run: gradle :app:assembleDebug --no-daemon
 
+      # Tiap cabang punya rilis & nama file sendiri supaya tidak saling menimpa.
+      - name: Choose release target
+        run: |
+          if [ "$GITHUB_REF_NAME" = "speedometer-only" ]; then
+            echo "APK_NAME=ElioSpeedo.apk" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=speedo-build" >> "$GITHUB_ENV"
+            echo "RELEASE_TITLE=Elio Speedo - Build Terbaru (khusus speedometer)" >> "$GITHUB_ENV"
+          else
+            echo "APK_NAME=ElioUX-debug.apk" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=latest-build" >> "$GITHUB_ENV"
+            echo "RELEASE_TITLE=Elio UX - Build Terbaru" >> "$GITHUB_ENV"
+          fi
+
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk ElioUX-debug.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ElioUX-debug-apk
-          path: ElioUX-debug.apk
+          name: ${{ env.APK_NAME }}
+          path: ${{ env.APK_NAME }}
 
       - name: Publish/Update stable release with APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest-build
-          name: Elio UX - Build Terbaru
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ env.RELEASE_TITLE }}
           body: |
-            APK hasil build otomatis dari commit terbaru di cabang `main`.
-            Unduh `ElioUX-debug.apk` di bawah, lalu pasang di Tablet / HP Android Samsung Galaxy Tab A (izinkan "Install dari sumber tidak dikenal" saat diminta).
+            APK hasil build otomatis dari commit terbaru di cabang `${{ github.ref_name }}`.
+            Unduh `${{ env.APK_NAME }}` di bawah, lalu pasang di Tablet / HP Android Samsung Galaxy Tab A (izinkan "Install dari sumber tidak dikenal" saat diminta).
           prerelease: true
-          files: ElioUX-debug.apk
+          files: ${{ env.APK_NAME }}

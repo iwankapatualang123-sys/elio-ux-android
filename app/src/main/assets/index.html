@@ -50,7 +50,7 @@
     .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
     .col-span-3 { grid-column: span 3 / span 3; } .col-span-4 { grid-column: span 4 / span 4; }
-    .col-span-5 { grid-column: span 5 / span 5; } .col-span-6 { grid-column: span 6 / span 6; }
+    .col-span-5 { grid-column: span 5 / span 5; } .col-span-12 { grid-column: span 12 / span 12; } .col-span-6 { grid-column: span 6 / span 6; }
     .gap-0\.5 { gap: 0.125rem; } .gap-1 { gap: 0.25rem; } .gap-1\.5 { gap: 0.375rem; } .gap-2 { gap: 0.5rem; }
     .gap-2\.5 { gap: 0.625rem; } .gap-3 { gap: 0.75rem; } .gap-4 { gap: 1rem; }
     .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.25rem; }
@@ -490,14 +490,14 @@
     .map-overlay-row { pointer-events: none; }
     .map-overlay-row button, .map-overlay-row .map-dest { pointer-events: auto; }
 
-    /* Peta Google native: halaman dibuat tembus pandang di area peta agar peta di belakang
-       WebView terlihat. Elemen lain (kartu, menu, HUD) tetap menutupinya seperti biasa. */
-    html.native-map-on, html.native-map-on body { background: transparent !important; }
-    html.native-map-on .native-map-card { background: transparent !important; }
-    html.native-map-on .native-map-card::before,
-    html.native-map-on .native-map-card::after { display: none !important; }
-    html.native-map-on [data-native-map-hole] { background: transparent !important; }
-    html.native-map-on [data-native-map-hole] > iframe { display: none !important; }
+    /* Speedometer jadi satu-satunya kartu: angka kecepatan ikut membesar mengikuti tinggi layar */
+    #speedDisplay, #hondaSpeedDisplay { font-size: clamp(3.75rem, 16vh, 9rem) !important; line-height: 1 !important; }
+
+    /* Layar sempit (split screen): sembunyikan tombol header yang tidak penting saat menyetir */
+    @media (max-width: 760px) {
+      #kioskFullscreenBtn, #soundFxToggleBtnJbl, header [onclick^="toggleJblEqModal"] { display: none !important; }
+      footer { flex-wrap: wrap; gap: 4px; }
+    }
 
     /* Mode Hemat: matikan animasi & efek glow yang terus digambar ulang (berat di tablet lama) */
     body.eco-mode *, body.eco-mode *::before, body.eco-mode *::after {
@@ -567,7 +567,7 @@
           <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white shadow-sm font-bold text-xs group-hover:scale-105 transition-transform">⚙</div>
           <span class="text-[9px] text-slate-200 font-bold truncate w-full text-center">Pengaturan</span>
         </button>
-        <button type="button" data-app-name="maps navigasi gps" onclick="switchFocus('maps'); toggleSideDrawer(false)" class="drawer-app-item flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 transition-all group">
+        <button type="button" data-app-name="maps navigasi gps" onclick="launchDeviceApp('maps'); toggleSideDrawer(false)" class="drawer-app-item flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 transition-all group">
           <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
           </div>
@@ -579,7 +579,7 @@
           <span class="text-[9px] text-slate-300 font-medium truncate w-full text-center">Waze</span>
         </button>
 
-        <button type="button" data-app-name="youtube video musik" onclick="switchFocus('youtube'); toggleSideDrawer(false)" class="drawer-app-item flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 transition-all group">
+        <button type="button" data-app-name="youtube video musik" onclick="launchDeviceApp('youtube'); toggleSideDrawer(false)" class="drawer-app-item flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 transition-all group">
           <div class="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white shadow-sm">
             <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 20c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 4c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
           </div>
@@ -997,15 +997,6 @@
           <button type="button" id="ecoModeBtn" onclick="toggleEcoMode()" class="tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer">🍃 Mode Hemat: OFF</button>
         </div>
 
-        <!-- Pilihan peta: Google native (Maps SDK) atau web embed -->
-        <div id="nativeMapSettingRow" class="hidden bg-black/40 p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
-          <div>
-            <span class="text-[10px] font-bold text-white font-mono">PETA NATIVE (OPENSTREETMAP)</span>
-            <p class="text-[8.5px] text-slate-400">Peta gelap yang mulus mengikuti mobil, gratis tanpa API key. Matikan untuk kembali ke peta web Google.</p>
-          </div>
-          <button type="button" id="nativeMapBtn" onclick="toggleNativeMapPref()" class="tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer">🗺️ Peta Native: OFF</button>
-        </div>
-
         <!-- GAS Speed Simulation Slider -->
         <div class="bg-black/40 p-2.5 rounded-xl border border-white/10 space-y-2">
           <div class="flex items-center justify-between">
@@ -1034,19 +1025,6 @@
           <button type="button" id="ignitionBtn" onclick="toggleIgnition()" class="tactile-btn bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] shadow-sm cursor-pointer">
             ⚡ ACC: ON
           </button>
-        </div>
-
-        <!-- Focus Layout Switcher -->
-        <div class="bg-black/40 p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
-          <div>
-            <span class="text-[10px] font-bold text-white font-mono">3. FOKUS MODE TAMPILAN DASHBOARD</span>
-            <p class="text-[8.5px] text-slate-400">Ubah tampilan menjadi Kokpit 3-Tile, Layar Lebar YouTube, atau Widescreen Maps.</p>
-          </div>
-          <div class="flex items-center gap-1 bg-black/60 p-1 rounded-lg border border-white/10">
-            <button type="button" id="viewBtnDashboard" onclick="switchFocus('dashboard'); toggleSettingsModal(false)" class="tactile-btn px-2 py-0.5 rounded text-[8px] font-mono font-bold text-slate-950 bg-[var(--theme-accent)] cursor-pointer">Kokpit 3-Tile</button>
-            <button type="button" id="viewBtnYtFocus" onclick="switchFocus('youtube'); toggleSettingsModal(false)" class="tactile-btn px-2 py-0.5 rounded text-[8px] font-mono text-slate-300 hover:text-white cursor-pointer">Fokus YouTube</button>
-            <button type="button" id="viewBtnMapsFocus" onclick="switchFocus('maps'); toggleSettingsModal(false)" class="tactile-btn px-2 py-0.5 rounded text-[8px] font-mono text-slate-300 hover:text-white cursor-pointer">Fokus Maps</button>
-          </div>
         </div>
       </div>
 
@@ -1295,8 +1273,8 @@
     <!-- 2A. MAIN COCKPIT BODY (DEFAULT 3-TILE VIEW WITH RAZOR-SHARP FUTURISTIC SPEEDOMETER) -->
     <main id="viewDashboard" class="relative z-10 grid grid-cols-12 gap-3 my-1.5 flex-1 min-h-0 items-stretch pl-3 transition-all duration-300">
       
-      <!-- LEFT TIER (5 Cols): MULTI-STYLE LUXURY SPEEDOMETER CLUSTER (FULL-BLEED EDGE-TO-EDGE) -->
-      <section class="col-span-5 cockpit-glass rounded-xl px-2 py-2 sm:px-2.5 sm:py-2.5 flex flex-col justify-between relative overflow-hidden min-h-0 group">
+      <!-- SPEEDOMETER CLUSTER: satu-satunya kartu, memenuhi layar (YouTube/Maps lewat split screen) -->
+      <section class="col-span-12 cockpit-glass rounded-xl px-2 py-2 sm:px-2.5 sm:py-2.5 flex flex-col justify-between relative overflow-hidden min-h-0 group">
         
         <!-- Header: Style Switcher Toolbar -->
         <div class="flex items-center justify-between pb-1.5 border-b border-white/[0.06] text-[8px] font-mono">
@@ -1900,302 +1878,8 @@
           </button>
         </div>
       </section>
-
-      <!-- CENTER TIER (3.5 Cols): REFINED MEDIA CARD WITH REAL EMBEDDED YOUTUBE PLAYER -->
-      <section class="col-span-3 min-h-0 cockpit-glass rounded-xl p-2.5 flex flex-col justify-between relative overflow-hidden group border border-white/10 hover:border-red-500/40 transition-all">
-        
-        <!-- Header (Tap anywhere on header to open YouTube Theater) -->
-        <div onclick="switchFocus('youtube')" class="clickable-card flex items-center justify-between text-[9px] pb-1.5 border-b border-white/[0.06] text-slate-400 cursor-pointer">
-          <div class="flex items-center gap-1 font-bold text-red-500">
-            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 20c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 4c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
-            <span id="ytVideoTitle" class="font-mono truncate max-w-[110px]">YouTube Player</span>
-          </div>
-
-          <div class="flex items-center gap-1.5">
-            <button type="button" onclick="event.stopPropagation(); openCurrentYtInNativeApp()" class="tactile-btn text-[8px] font-mono px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-200 border border-white/15" title="Buka Video di App YouTube Android">App ↗</button>
-            <button type="button" onclick="event.stopPropagation(); switchFocus('youtube')" class="tactile-btn text-[8.5px] font-mono font-bold px-2 py-1 rounded bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40" title="Perbesar Layar Penuh YouTube">
-              ⛶ Fokus
-            </button>
-          </div>
-        </div>
-
-        <!-- Inline URL/ID Search Box (Replaces blocking browser prompt) -->
-        <div id="ytInlineSearchBox" class="hidden flex items-center gap-1 mt-1 bg-black/70 border border-red-500/40 rounded-lg p-1">
-          <input id="ytCustomUrlInput" type="text" placeholder="Tempel Link / ID YouTube..." class="flex-1 bg-transparent text-[10px] text-white px-1.5 py-0.5 focus:outline-none placeholder-slate-500" />
-          <button type="button" onclick="submitInlineYtSearch()" class="px-2 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold">Putar</button>
-        </div>
-
-        <!-- Real Embedded YouTube Player (HTTPS Origin + Strict Referrer Policy prevents Error 153) -->
-        <div class="relative flex-1 min-h-0 my-1.5 flex flex-col justify-center items-center overflow-hidden rounded-lg bg-black border border-white/10 shadow-inner">
-          <iframe id="ytTileIframe"
-                  src="about:blank"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  class="w-full h-full border-0 rounded-lg" 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                  allowfullscreen>
-          </iframe>
-        </div>
-
-        <!-- Video Channel Selector & Controls -->
-        <div class="space-y-1 pt-1 border-t border-white/[0.04] text-[8px] font-mono">
-          <div class="flex items-center justify-between gap-1">
-            <button type="button" onclick="setYtPresetVideo('jfKfPfyJRdk', 'Lofi Beats Live')" class="tactile-btn flex-1 px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 truncate text-center">🎵 Lofi</button>
-            <button type="button" onclick="setYtPresetVideo('4xDzrJKXOOY', 'Synthwave Radio')" class="tactile-btn flex-1 px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 truncate text-center">⚡ Synth</button>
-            <button type="button" onclick="setYtPresetVideo('q76bMs-NwRk', 'Rain Sounds Relax')" class="tactile-btn flex-1 px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 truncate text-center">🌧️ Chill</button>
-            <button type="button" onclick="promptYtVideo()" class="tactile-btn px-2 py-1 rounded bg-red-950/70 text-red-300 border border-red-500/40 hover:bg-red-900/70 font-bold" title="Ketik Link / Video ID YouTube">🔍 Link</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- RIGHT TIER (4 Cols): REAL INTERACTIVE GOOGLE MAPS TILE -->
-      <section class="native-map-card col-span-4 min-h-0 cockpit-glass rounded-xl overflow-hidden flex flex-col justify-between relative border border-blue-500/30 shadow-lg group">
-        
-        <!-- Maps Header (Tap anywhere on header to open Maps Fullscreen) -->
-        <div onclick="switchFocus('maps')" class="clickable-card bg-black/80 px-2.5 py-1.5 flex items-center justify-between border-b border-white/[0.06] z-10 text-[9px] font-mono cursor-pointer">
-          <div class="flex items-center gap-1.5">
-            <div class="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-black">G</div>
-            <span class="font-bold text-slate-200">Maps Live</span>
-            <span id="mapGpsBadge" class="text-[7.5px] px-1 py-0.2 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-bold">GPS AKTIF</span>
-          </div>
-
-          <div class="flex items-center gap-1.5">
-            <button type="button" onclick="event.stopPropagation(); locateRealTabletGps(true)" class="tactile-btn px-2 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 text-[8px] font-bold" title="Arahkan peta ke posisi GPS tablet saat ini">
-              📍 Lokasi
-            </button>
-            <button type="button" onclick="event.stopPropagation(); switchFocus('maps')" class="tactile-btn px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-[8.5px] font-bold" title="Perbesar Layar Penuh Google Maps">
-              ⛶ Fokus
-            </button>
-          </div>
-        </div>
-
-        <!-- Real Embedded Google Maps Canvas -->
-        <div id="dashMapHole" data-native-map-hole class="relative flex-1 min-h-0 bg-[#090D15] overflow-hidden flex flex-col justify-between">
-          <!-- Real Interactive Google Maps IFrame -->
-          <iframe id="liveMapIframe"
-                  src="about:blank"
-                  class="absolute inset-0 w-full h-full border-0 filter contrast-[1.05]" 
-                  loading="lazy">
-          </iframe>
-
-          <!-- Pencarian lokasi (menggantikan kartu petunjuk belok palsu) -->
-          <form onsubmit="event.preventDefault(); searchMapPlace(this.elements.q.value); this.elements.q.blur();" class="map-search-bar relative z-10 m-2">
-            <input name="q" data-map-search type="search" enterkeyhint="search" autocomplete="off" placeholder="Cari lokasi atau alamat…" class="map-search-input">
-            <button type="submit" class="tactile-btn map-search-btn" title="Cari lokasi">🔍</button>
-            <div class="map-translucent-hud rounded-md px-1.5 py-0.5 text-[8px] font-mono text-cyan-300 font-bold shrink-0">
-              <span id="miniMapSpeed">0</span> KM/H
-            </div>
-          </form>
-
-          <!-- Tujuan terpilih, riwayat pencarian, dan tombol navigasi -->
-          <div class="map-overlay-row relative z-10 m-2 mt-auto flex items-end justify-between gap-2">
-            <div class="flex flex-col gap-1 min-w-0">
-              <div data-dest class="hidden"></div>
-              <div data-recent-places class="map-recent"></div>
-            </div>
-            <button onclick="openOfficialGoogleMaps()" class="tactile-btn map-nav-btn shrink-0" title="Navigasi suara di aplikasi Google Maps">🧭 Navigasi</button>
-          </div>
-        </div>
-
-      </section>
     </main>
 
-    <!-- 2B. THEATER FOCUS VIEW: YOUTUBE VIDEO -->
-    <main id="viewYoutubeTheater" class="hidden relative z-10 flex-1 min-h-0 my-1.5 pl-3 flex flex-col justify-between">
-      <div class="relative w-full h-full min-h-0 rounded-xl overflow-hidden cockpit-glass border border-red-500/25 flex flex-col justify-between shadow-xl">
-        
-        <div class="bg-black/75 px-3 py-1.5 flex items-center justify-between z-20 border-b border-white/10 text-xs gap-2">
-          <div class="flex items-center gap-2.5">
-            <button type="button" onclick="switchFocus('dashboard')" class="bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-              <span>Kembali</span>
-            </button>
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-red-600"></span>
-              <span class="font-bold text-xs text-white">YouTube Theater</span>
-              <span id="theaterYtTitle" class="text-[10px] text-slate-400 truncate max-w-[160px]">| Lofi Beats Live</span>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-1.5">
-            <input id="ytTheaterUrlInput" type="text" placeholder="Tempel Link / ID Video YouTube..." class="bg-black/60 border border-white/15 rounded-lg px-2 py-0.5 text-[10px] text-white w-44 focus:outline-none focus:border-[var(--theme-accent)] placeholder-slate-500" />
-            <button type="button" onclick="submitTheaterYtSearch()" class="px-2 py-0.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold">Putar</button>
-            <button type="button" onclick="openCurrentYtInNativeApp()" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-mono">Buka App ↗</button>
-          </div>
-        </div>
-
-        <div class="relative flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden">
-          <iframe id="ytTheaterIframe"
-                  src="about:blank"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  class="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowfullscreen>
-          </iframe>
-
-          <!-- FLOATING DRIVING SAFETY SPEEDOMETER HUD (SHARP RETICLE) -->
-          <div class="absolute top-3 left-3 z-20 bg-black/80 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-lg flex items-center gap-2.5 shadow-xl pointer-events-none">
-            <div class="flex flex-col items-center">
-              <span class="font-mono font-black text-2xl text-white tracking-tight skew-speed" id="theaterSpeedDisplay">0</span>
-              <span class="text-[8px] font-bold text-[var(--theme-accent)]">KM/H</span>
-            </div>
-            <div class="h-6 w-px bg-white/10"></div>
-            <div class="text-[9px] font-mono text-slate-300">
-              <div id="theaterHeadingAlt">N 0° • 0m</div>
-              <div id="theaterGDisplay" class="text-emerald-400 font-bold">G: +0.00G</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-black/90 px-3 py-1.5 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-mono z-20">
-          <div class="flex items-center gap-1.5">
-            <button type="button" onclick="setYtPresetVideo('jfKfPfyJRdk', 'Lofi Beats Live')" class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white">🎵 Lofi</button>
-            <button type="button" onclick="setYtPresetVideo('4xDzrJKXOOY', 'Synthwave Radio')" class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white">⚡ Synthwave</button>
-            <button type="button" onclick="setYtPresetVideo('q76bMs-NwRk', 'Rain Chill')" class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white">🌧️ Relax</button>
-          </div>
-          <button type="button" onclick="switchFocus('dashboard')" class="text-red-400 hover:text-red-300 font-bold">Tutup Layar Penuh ✕</button>
-        </div>
-
-      </div>
-    </main>
-
-    <!-- 2C. THEATER FOCUS VIEW: GOOGLE MAPS WIDESCREEN WITH HOLOGRAPHIC TRANSPARENT SPEEDOMETER HUD -->
-    <main id="viewMapsWidescreen" class="hidden relative z-10 flex-1 min-h-0 my-1.5 pl-3 flex flex-col justify-between">
-      <div class="native-map-card relative w-full h-full min-h-0 rounded-xl overflow-hidden cockpit-glass border border-blue-500/25 flex flex-col justify-between shadow-2xl">
-        
-        <!-- Maps Header Bar with HUD Controls -->
-        <div class="bg-black/80 backdrop-blur-md px-3 py-1.5 flex items-center justify-between z-20 border-b border-white/10 text-xs">
-          <div class="flex items-center gap-2">
-            <button onclick="switchFocus('dashboard')" class="bg-white/10 hover:bg-white/20 text-white px-2.5 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-              <span>Kokpit</span>
-            </button>
-            <div class="flex items-center gap-1.5">
-              <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-              <span class="font-bold text-xs text-white">Google Maps Navigation</span>            </div>
-          </div>
-
-          <!-- HUD Transparency & Position Customizers -->
-          <div class="flex items-center gap-2">
-            <!-- Transparency Switcher -->
-            <div class="flex items-center gap-1 bg-slate-900/90 border border-white/10 px-1.5 py-0.5 rounded-lg text-[9px] font-mono">
-              <span class="text-slate-400">Transparan:</span>
-              <button id="op30" onclick="setMapHudOpacity(0.30)" class="px-1.5 py-0.2 rounded hover:bg-white/10 text-slate-300">30%</button>
-              <button id="op45" onclick="setMapHudOpacity(0.45)" class="px-1.5 py-0.2 rounded bg-white/20 text-white font-bold">45%</button>
-              <button id="op75" onclick="setMapHudOpacity(0.75)" class="px-1.5 py-0.2 rounded hover:bg-white/10 text-slate-300">75%</button>
-            </div>
-
-            <!-- Position Snap Preset Selector -->
-            <div class="flex items-center gap-1 bg-slate-900/90 border border-white/10 px-1.5 py-0.5 rounded-lg text-[9px] font-mono">
-              <span class="text-slate-400 flex items-center gap-0.5">
-                <svg class="w-2.5 h-2.5 text-[var(--theme-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
-                <span>Snap:</span>
-              </span>
-              <button onclick="snapMapHud('bl')" class="px-1.5 py-0.2 rounded hover:bg-white/15 text-slate-300 hover:text-white" title="Kiri Bawah">↙ Kiri</button>
-              <button onclick="snapMapHud('bc')" class="px-1.5 py-0.2 rounded hover:bg-white/15 text-slate-300 hover:text-white" title="Tengah Bawah">⬇ Tengah</button>
-              <button onclick="snapMapHud('br')" class="px-1.5 py-0.2 rounded hover:bg-white/15 text-slate-300 hover:text-white" title="Kanan Bawah">↘ Kanan</button>
-              <button onclick="snapMapHud('tr')" class="px-1.5 py-0.2 rounded hover:bg-white/15 text-slate-300 hover:text-white" title="Kanan Atas">↗ Atas</button>
-            </div>
-
-            <button type="button" onclick="locateRealTabletGps(true)" class="tactile-btn px-2 py-0.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 text-[10px] font-bold">📍 Lokasi</button>
-            <button type="button" onclick="openOfficialGoogleMaps()" class="tactile-btn px-2.5 py-0.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold" title="Navigasi suara di aplikasi Google Maps">🧭 Navigasi</button>
-          </div>
-        </div>
-
-        <!-- Clean Full-Focus Live Google Maps Container (No Fake SVG Blocking Map) -->
-        <div id="mapCanvasContainer" data-native-map-hole class="relative flex-1 min-h-0 bg-[#090D15] overflow-hidden select-none">
-            <iframe id="widescreenLiveMapIframe" 
-                    src="about:blank" 
-                    class="absolute inset-0 w-full h-full border-0">
-            </iframe>
-
-          <!-- Top Turn-by-Turn Instruction Banner (Floating on Map) -->
-          <div class="absolute top-2.5 left-3 right-3 z-20 flex items-center justify-between gap-3 pointer-events-none">
-            <form onsubmit="event.preventDefault(); searchMapPlace(this.elements.q.value); this.elements.q.blur();" class="map-search-bar pointer-events-auto" style="flex: 1 1 auto; max-width: 28rem;">
-              <input name="q" data-map-search type="search" enterkeyhint="search" autocomplete="off" placeholder="Cari lokasi atau alamat…" class="map-search-input">
-              <button type="submit" class="tactile-btn map-search-btn" title="Cari lokasi">🔍</button>
-            </form>
-
-            <!-- Quick Map Action Icons (North, Voice, Re-center GPS) -->
-            <div class="flex items-center gap-1.5 pointer-events-auto">
-              <button type="button" onclick="resetMapNorth()" class="w-7 h-7 rounded-lg bg-black/70 backdrop-blur-md border border-white/15 text-slate-300 hover:text-white flex items-center justify-center shadow-lg transition-all" title="Reset Utara">
-                <span class="text-[10px] font-mono font-bold text-red-400">N</span>
-              </button>
-              <button type="button" onclick="toggleSoundFx()" class="w-7 h-7 rounded-lg bg-black/70 backdrop-blur-md border border-white/15 text-slate-300 hover:text-white flex items-center justify-center shadow-lg transition-all" title="Suara Audio FX">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
-              </button>
-              <button type="button" onclick="locateRealTabletGps(true)" class="w-7 h-7 rounded-lg bg-black/70 backdrop-blur-md border border-white/15 text-slate-300 hover:text-white flex items-center justify-center shadow-lg transition-all" title="Re-center GPS">
-                <svg class="w-3.5 h-3.5 text-[var(--theme-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- =================================================================================== -->
-          <!-- HOLOGRAPHIC COMPACT SPEEDOMETER HUD (DRAGGABLE & RESIZED FOR MAXIMUM MAP VISIBILITY) -->
-          <!-- =================================================================================== -->
-          <div id="mapHudPod" class="absolute bottom-3 left-3 z-30 map-translucent-hud map-hud-draggable rounded-xl p-2 shadow-2xl w-44 sm:w-48 select-none transition-shadow" style="touch-action: none;" title="Tahan & geser kartu untuk memindahkan ke mana saja">
-            
-            <!-- Mini Drag Handle Header -->
-            <div id="mapHudDragHandle" class="flex items-center justify-between pb-1 mb-1 border-b border-white/10 text-[8px] font-mono cursor-grab active:cursor-grabbing">
-              <div class="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
-                <!-- Grip Dots Icon -->
-                <svg class="w-3 h-3 text-[var(--theme-accent)] opacity-80" viewBox="0 0 16 16" fill="currentColor">
-                  <circle cx="4" cy="4" r="1.5"/><circle cx="12" cy="4" r="1.5"/>
-                  <circle cx="4" cy="8" r="1.5"/><circle cx="12" cy="8" r="1.5"/>
-                  <circle cx="4" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/>
-                </svg>
-                <span class="font-bold text-slate-200 tracking-wider text-[7.5px]">HUD</span>
-                <span class="text-[6.5px] text-slate-500 uppercase tracking-tight hidden sm:inline">GESER</span>
-              </div>
-              
-              <div class="flex items-center gap-1.5">
-                <!-- Sat Lock Dot -->
-                <div class="flex items-center gap-0.5 text-emerald-400 text-[7px]" title="GPS Satellites Locked">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span id="mapHudSatCount" class="font-mono">0</span>
-                </div>
-                <!-- Mini Circular Speed Limit Sign -->
-                <div id="mapHudSpeedLimitBadge" class="w-4 h-4 rounded-full bg-white border-[2px] border-red-600 flex items-center justify-center shadow-md transition-all shrink-0" title="Batas Kecepatan 80 km/h">
-                  <span class="text-slate-950 font-black font-sans text-[7px] leading-none">80</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Compact Speed Number & Arc Blade -->
-            <div class="relative flex flex-col items-center justify-center my-0.5">
-              <div class="flex items-baseline justify-center skew-speed">
-                <span id="mapHudSpeedDisplay" class="font-mono font-black text-3xl sm:text-4xl tracking-tighter text-white transition-all duration-150" style="text-shadow: 0 0 14px var(--theme-glow);">0</span>
-                <span class="text-[8px] font-mono font-black tracking-widest text-[var(--theme-accent)] ml-1">KM/H</span>
-                <span id="mapOverspeedAlert" class="hidden ml-1.5 text-[7px] font-mono text-red-300 font-bold bg-red-600/50 px-1 py-0.2 rounded border border-red-500/80 animate-pulse">⚠️ >80</span>
-              </div>
-
-              <!-- Sleek Slim Speed Blade Bar -->
-              <svg class="w-full h-3 mt-0.5" viewBox="0 0 160 12">
-                <path d="M 6,10 L 22,2 L 138,2 L 154,10" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-                <path id="mapHudSpeedBlade" d="M 6,10 L 22,2 L 138,2 L 154,10" fill="none" stroke="var(--theme-accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="152" stroke-dashoffset="152" style="filter: drop-shadow(0 0 6px var(--theme-glow));" class="transition-all duration-200" />
-              </svg>
-            </div>
-
-            <!-- Telemetry Micro Strip (Compass, Altitude, G-Force) -->
-            <div class="flex items-center justify-between pt-1 border-t border-white/10 font-mono text-[7.5px] text-slate-400">
-              <span id="mapHudHeading" class="text-slate-300" title="Arah Kendaraan"><span class="text-[var(--theme-accent)]">N</span> 0°</span>
-              <span class="text-slate-500">•</span>
-              <span id="mapHudAlt" class="text-emerald-400 font-bold" title="Ketinggian GPS">0m</span>
-              <span class="text-slate-500">•</span>
-              <span id="mapHudGForceDisplay" class="text-amber-300 font-bold" title="Lateral G-Force">+0.00G</span>
-            </div>
-
-          </div>
-
-          <!-- Tujuan terpilih & riwayat pencarian (menggantikan kartu "rute tercepat" palsu) -->
-          <div class="absolute bottom-2.5 right-3 z-20 flex flex-col items-end gap-1.5" style="max-width: 20rem;">
-            <div data-dest class="hidden"></div>
-            <div data-recent-places class="map-recent" style="justify-content: flex-end;"></div>
-          </div>
-
-        </div>
-
-      </div>
-    </main>
 
     <!-- 3. BOTTOM COCKPIT DOCK / CONTROLS -->
     <footer class="relative z-10 flex items-center justify-between px-3 py-1 border-t border-white/[0.05] text-[10px]">
@@ -2788,7 +2472,6 @@
         if (ytTile && (!ytTile.src || ytTile.src === 'about:blank')) ytTile.src = getCurrentYtEmbedUrl(false);
         if (mapTile && !nativeMapOn && (!mapTile.src || mapTile.src === 'about:blank')) mapTile.src = currentMapEmbedUrl;
       }
-      syncNativeMap();
     }
 
     function toggleSideDrawer(forceState) {
@@ -3662,86 +3345,6 @@
       if (!found) showCockpitToast('Lokasi tidak ditemukan di peta. Tekan 🧭 Navigasi untuk mencari di Google Maps.');
     };
 
-    /* ==========================================================================
-       PETA GOOGLE NATIVE (Maps SDK di belakang WebView, kartu peta "dilubangi")
-       ========================================================================== */
-    function nativeMapSupported() {
-      try {
-        return !!(window.ElioNativeBridge && window.ElioNativeBridge.isNativeMapAvailable &&
-          window.ElioNativeBridge.isNativeMapAvailable());
-      } catch (e) {
-        return false;
-      }
-    }
-
-    function nativeMapPreferred() {
-      try { return localStorage.getItem('elioNativeMap') !== '0'; } catch (e) { return true; }
-    }
-
-    function setNativeMapMode(on) {
-      nativeMapOn = !!on && nativeMapSupported();
-      document.documentElement.classList.toggle('native-map-on', nativeMapOn);
-      const tile = document.getElementById('liveMapIframe');
-      const wide = document.getElementById('widescreenLiveMapIframe');
-      if (nativeMapOn) {
-        if (tile) tile.src = 'about:blank';
-        if (wide) wide.src = 'about:blank';
-        if (mapDestination) window.ElioNativeBridge.searchNativeMap(mapDestination);
-      } else {
-        if (tile && currentFocus === 'dashboard') tile.src = currentMapEmbedUrl;
-        if (wide && currentFocus === 'maps') wide.src = currentMapEmbedUrl;
-      }
-      renderNativeMapSetting();
-      syncNativeMap();
-    }
-
-    // Laporkan posisi kartu peta yang terlihat (piksel layar) ke peta native di belakang.
-    function syncNativeMap() {
-      const bridge = window.ElioNativeBridge;
-      if (!bridge || !bridge.setNativeMapRect) return;
-      let hole = null;
-      if (nativeMapOn) {
-        if (currentFocus === 'maps') hole = document.getElementById('mapCanvasContainer');
-        else if (currentFocus === 'dashboard') hole = document.getElementById('dashMapHole');
-      }
-      const r = hole ? hole.getBoundingClientRect() : null;
-      if (!r || r.width < 1 || r.height < 1) {
-        bridge.setNativeMapRect(0, 0, 0, 0);
-        return;
-      }
-      const dpr = window.devicePixelRatio || 1;
-      bridge.setNativeMapRect(Math.round(r.left * dpr), Math.round(r.top * dpr),
-        Math.round(r.width * dpr), Math.round(r.height * dpr));
-    }
-
-    // Dipanggil native saat jari menyentuh area peta: true = untuk peta, false = untuk tombol/menu HTML.
-    window.__elioMapHitTest = function (px, py) {
-      if (!nativeMapOn) return false;
-      const dpr = window.devicePixelRatio || 1;
-      const el = document.elementFromPoint(px / dpr, py / dpr);
-      return !!(el && el.hasAttribute && el.hasAttribute('data-native-map-hole'));
-    };
-
-    window.addEventListener('resize', () => requestAnimationFrame(syncNativeMap));
-
-    function toggleNativeMapPref() {
-      const on = !nativeMapOn;
-      try { localStorage.setItem('elioNativeMap', on ? '1' : '0'); } catch (e) {}
-      setNativeMapMode(on);
-      showCockpitToast(on ? 'Peta native (OpenStreetMap) aktif' : 'Peta web Google aktif');
-    }
-
-    function renderNativeMapSetting() {
-      const row = document.getElementById('nativeMapSettingRow');
-      const btn = document.getElementById('nativeMapBtn');
-      if (row) row.classList.toggle('hidden', !nativeMapSupported());
-      if (btn) {
-        btn.textContent = nativeMapOn ? '🗺️ Peta Native: ON' : '🗺️ Peta Native: OFF';
-        btn.className = 'tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer ' +
-          (nativeMapOn ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-white/10 text-slate-300 border-white/20');
-      }
-    }
-
     function loadRecentPlaces() {
       try {
         const list = JSON.parse(localStorage.getItem(RECENT_PLACES_KEY) || '[]');
@@ -4194,10 +3797,6 @@
     if (ytTileInit && currentFocus === 'dashboard') ytTileInit.src = getCurrentYtEmbedUrl(false);
     renderRecentPlaces();
     renderMapDestination();
-    setNativeMapMode(nativeMapPreferred());
-    // Ukuran kartu bisa berubah setelah font/tata letak selesai dihitung
-    setTimeout(syncNativeMap, 300);
-    setTimeout(syncNativeMap, 1500);
 
   </script>
 </body>
