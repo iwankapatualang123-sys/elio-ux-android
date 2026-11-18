@@ -3247,7 +3247,19 @@
     applyCustomHex('#00E5FF');
     setSpeedometerStyle('lfa');
     updateSpeed(0);
-    startAutoDriveSimulation();
+
+    // Simulasi gas otomatis HANYA untuk mode demo di browser biasa (bukan APK).
+    // Saat berjalan di dalam APK Android, data asli dari GPS + Accelerometer
+    // HP yang dipakai (lihat window.onGpsSpeedUpdate), jadi simulasi dimatikan.
+    if (window.ElioNativeBridge) {
+      stopAutoDriveSimulation();
+      const btn = document.getElementById('autoDriveToggleBtn');
+      const txt = document.getElementById('autoDriveText');
+      if (btn) btn.className = 'tactile-btn px-2 py-0.5 rounded text-[8px] font-mono font-bold bg-white/10 text-slate-300 border border-white/20 hover:bg-white/20 transition-all flex items-center gap-1';
+      if (txt) txt.textContent = '📡 Sensor HP: REALTIME';
+    } else {
+      startAutoDriveSimulation();
+    }
     locateRealTabletGps();
     initDraggableHud();
 

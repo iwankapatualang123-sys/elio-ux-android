@@ -5,6 +5,7 @@ build/
 local.properties
 *.apk
 *.aab
+*.zip
 .DS_Store
 captures/
 .cxx/
