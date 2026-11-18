@@ -60,9 +60,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
 
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
-        private const val SENSOR_PUSH_INTERVAL_MS = 160L
-        private const val BASE_ORIGIN_URL = "https://elioux.app/"
-        private const val ENTRY_URL = "https://elioux.app/index.html"
+        private const val SENSOR_PUSH_INTERVAL_MS = 350L
+        private const val BASE_ORIGIN_URL = "https://www.youtube.com/"
+        private const val ENTRY_URL = "https://www.youtube.com/elioux-launcher.html"
     }
 
     private lateinit var rootContainer: FrameLayout
@@ -161,6 +161,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(android.graphics.Color.parseColor("#020408"))
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
             isFocusable = true
             isFocusableInTouchMode = true
             isClickable = true
@@ -247,15 +248,17 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                     request: WebResourceRequest?
                 ): WebResourceResponse? {
                     val uri = request?.url ?: return null
-                    if (uri.scheme == "https" && uri.host.equals("elioux.app", ignoreCase = true)) {
-                        val path = uri.path ?: ""
-                        if (path.isEmpty() || path == "/" || path == "/index.html") {
-                            return try {
-                                val stream = assets.open("index.html")
-                                WebResourceResponse("text/html", "UTF-8", stream)
-                            } catch (_: Exception) {
-                                null
-                            }
+                    val host = uri.host ?: ""
+                    val path = uri.path ?: ""
+                    if (uri.scheme == "https" &&
+                        ((host.equals("www.youtube.com", ignoreCase = true) && path == "/elioux-launcher.html") ||
+                         (host.equals("elioux.app", ignoreCase = true) && (path.isEmpty() || path == "/" || path == "/index.html")))
+                    ) {
+                        return try {
+                            val stream = assets.open("index.html")
+                            WebResourceResponse("text/html", "UTF-8", stream)
+                        } catch (_: Exception) {
+                            null
                         }
                     }
                     return super.shouldInterceptRequest(view, request)
@@ -275,10 +278,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                     val scheme = uri.scheme?.lowercase(Locale.ROOT) ?: return false
 
                     if (scheme == "http" || scheme == "https") {
-                        // Never let external watch URLs hijack the main launcher frame
+                        // Never let external watch/maps links hijack the main launcher frame
                         if (request.isForMainFrame) {
                             val host = uri.host?.lowercase(Locale.ROOT) ?: ""
-                            if (host != "elioux.app") {
+                            val path = uri.path ?: ""
+                            val isLauncherEntry = (host == "www.youtube.com" && path == "/elioux-launcher.html") || host == "elioux.app"
+                            if (!isLauncherEntry) {
                                 try {
                                     startActivity(Intent(Intent.ACTION_VIEW, uri))
                                 } catch (_: Exception) {}

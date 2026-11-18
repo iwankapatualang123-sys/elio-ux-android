@@ -203,9 +203,13 @@
     .ring-red-500 { --ring-c: #ef4444; } .ring-red-500\/80 { --ring-c: rgba(239,68,68,0.8); }
     .blur-2xl { filter: blur(40px); } .blur-\[140px\] { filter: blur(140px); }
     .contrast-\[1\.05\] { filter: contrast(1.05); }
-    .backdrop-blur-xs { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-    .backdrop-blur-md { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-    .backdrop-blur-2xl { backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); }
+    .backdrop-blur-xs { background-color: rgba(8, 12, 20, 0.92); }
+    .backdrop-blur-md { background-color: rgba(8, 12, 20, 0.94); }
+    .backdrop-blur-2xl { background-color: rgba(6, 9, 15, 0.96); }
+    .tactile-btn { transition: transform 0.08s ease, opacity 0.08s ease; }
+    .tactile-btn:active { transform: scale(0.94) !important; opacity: 0.85 !important; }
+    .clickable-card { cursor: pointer; }
+    .clickable-card:active { transform: scale(0.985); }
     .transform { transform: translate(0, 0); }
     .-translate-x-full { transform: translateX(-100%); } .-translate-y-1\/2 { transform: translateY(-50%); }
     .transition-all { transition: all 0.2s cubic-bezier(0.4,0,0.2,1); }
@@ -283,8 +287,7 @@
        ========================================================================== */
     .cockpit-glass {
       background: linear-gradient(135deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%) !important;
-      backdrop-filter: blur(30px);
-      -webkit-backdrop-filter: blur(30px);
+      /* Backdrop blur disabled for high-FPS touch responsiveness on automotive tablets */
       border: 1.5px solid var(--card-border) !important;
       box-shadow: 
         0 24px 50px -12px var(--card-glow),
@@ -469,12 +472,12 @@
     <!-- Right Ambient Razor Light Bar -->
     <div class="absolute top-0 bottom-0 right-0 w-[2.5px] bg-gradient-to-b from-transparent via-[var(--theme-accent)] to-transparent opacity-90 pointer-events-none z-20" style="box-shadow: 0 0 16px var(--theme-accent);"></div>
 
-    <!-- Soft Ambient Fog -->
-    <div class="absolute -top-32 left-1/3 w-[500px] h-[500px] bg-[var(--theme-glow)] opacity-10 blur-[140px] pointer-events-none transition-all duration-700"></div>
+    <!-- Soft Ambient Fog (Zero-Blur Lightweight Gradient) -->
+    <div class="absolute -top-32 left-1/3 w-[500px] h-[500px] opacity-15 pointer-events-none" style="background: radial-gradient(circle, var(--theme-glow) 0%, transparent 70%);"></div>
 
     <!-- Night Dimming & Sleep Overlays & Non-blocking Toast -->
     <div id="nightDimOverlay" class="fixed inset-0 bg-black pointer-events-none z-45" style="opacity: 0; transition: opacity 0.6s ease;"></div>
-    <div id="sleepOverlay" class="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center gap-3 pointer-events-none" style="opacity: 0; transition: opacity 0.4s ease;">
+    <div id="sleepOverlay" class="hidden fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center gap-3 pointer-events-none" style="opacity: 0; transition: opacity 0.4s ease;">
       <div class="text-xs font-mono tracking-widest text-amber-400 font-bold">🔌 KONTAK ACC TERPUTUS</div>
       <div class="text-2xl font-mono font-black text-white">Mode Standby dalam <span id="sleepTimer" class="text-[var(--theme-accent)]">10</span>s</div>
       <button type="button" onclick="toggleIgnition()" class="tactile-btn px-4 py-1.5 rounded-lg bg-[var(--theme-accent)] text-slate-950 font-mono font-bold text-xs shadow-lg">⚡ Nyalakan Kembali (ACC ON)</button>
@@ -1833,17 +1836,17 @@
       <!-- CENTER TIER (3.5 Cols): REFINED MEDIA CARD WITH REAL EMBEDDED YOUTUBE PLAYER -->
       <section class="col-span-3 min-h-0 cockpit-glass rounded-xl p-2.5 flex flex-col justify-between relative overflow-hidden group border border-white/10 hover:border-red-500/40 transition-all">
         
-        <!-- Header -->
-        <div class="flex items-center justify-between text-[9px] pb-1 border-b border-white/[0.06] text-slate-400">
+        <!-- Header (Tap anywhere on header to open YouTube Theater) -->
+        <div onclick="switchFocus('youtube')" class="clickable-card flex items-center justify-between text-[9px] pb-1.5 border-b border-white/[0.06] text-slate-400 cursor-pointer">
           <div class="flex items-center gap-1 font-bold text-red-500">
-            <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 20c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 4c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
-            <span id="ytVideoTitle" class="font-mono truncate max-w-[120px]">YouTube Player</span>
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 20c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 4c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
+            <span id="ytVideoTitle" class="font-mono truncate max-w-[110px]">YouTube Player</span>
           </div>
 
-          <div class="flex items-center gap-1">
-            <button type="button" onclick="openCurrentYtInNativeApp()" class="text-[7.5px] font-mono px-1.5 py-0.2 rounded bg-white/5 hover:bg-white/15 text-slate-300 border border-white/10" title="Buka Video di App YouTube Android">App ↗</button>
-            <button type="button" onclick="switchFocus('youtube')" class="text-[8px] font-mono text-slate-300 hover:text-red-400 transition-colors ml-1" title="Perbesar Layar Penuh YouTube">
-              Fokus ↗
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="event.stopPropagation(); openCurrentYtInNativeApp()" class="tactile-btn text-[8px] font-mono px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-200 border border-white/15" title="Buka Video di App YouTube Android">App ↗</button>
+            <button type="button" onclick="event.stopPropagation(); switchFocus('youtube')" class="tactile-btn text-[8.5px] font-mono font-bold px-2 py-1 rounded bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40" title="Perbesar Layar Penuh YouTube">
+              ⛶ Fokus
             </button>
           </div>
         </div>
@@ -1857,7 +1860,7 @@
         <!-- Real Embedded YouTube Player (HTTPS Origin + Strict Referrer Policy prevents Error 153) -->
         <div class="relative flex-1 min-h-0 my-1.5 flex flex-col justify-center items-center overflow-hidden rounded-lg bg-black border border-white/10 shadow-inner">
           <iframe id="ytTileIframe" 
-                  src="https://www.youtube.com/embed/jfKfPfyJRdk?enablejsapi=1&playsinline=1&rel=0&origin=https://elioux.app" 
+                  src="https://www.youtube.com/embed/jfKfPfyJRdk?playsinline=1&rel=0&modestbranding=1" 
                   referrerpolicy="strict-origin-when-cross-origin"
                   class="w-full h-full border-0 rounded-lg" 
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
@@ -1879,20 +1882,20 @@
       <!-- RIGHT TIER (4 Cols): REAL INTERACTIVE GOOGLE MAPS TILE -->
       <section class="col-span-4 min-h-0 cockpit-glass rounded-xl overflow-hidden flex flex-col justify-between relative border border-blue-500/30 shadow-lg group">
         
-        <!-- Maps Header with Live GPS Status -->
-        <div class="bg-black/80 px-2.5 py-1 flex items-center justify-between border-b border-white/[0.06] z-10 text-[9px] font-mono">
+        <!-- Maps Header (Tap anywhere on header to open Maps Fullscreen) -->
+        <div onclick="switchFocus('maps')" class="clickable-card bg-black/80 px-2.5 py-1.5 flex items-center justify-between border-b border-white/[0.06] z-10 text-[9px] font-mono cursor-pointer">
           <div class="flex items-center gap-1.5">
             <div class="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-black">G</div>
-            <span class="font-bold text-slate-200">Google Maps Live</span>
+            <span class="font-bold text-slate-200">Maps Live</span>
             <span id="mapGpsBadge" class="text-[7.5px] px-1 py-0.2 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-bold">GPS AKTIF</span>
           </div>
 
-          <div class="flex items-center gap-1">
-            <button onclick="locateRealTabletGps()" class="tactile-btn px-1.5 py-0.5 rounded bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 text-[7.5px] font-bold" title="Arahkan peta ke posisi GPS tablet saat ini">
-              📍 Lokasi Saya
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="event.stopPropagation(); locateRealTabletGps(true)" class="tactile-btn px-2 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 text-[8px] font-bold" title="Arahkan peta ke posisi GPS tablet saat ini">
+              📍 Lokasi
             </button>
-            <button onclick="switchFocus('maps')" class="text-[8px] font-mono text-slate-400 hover:text-blue-400 transition-colors ml-1" title="Perbesar Layar Penuh Google Maps">
-              Fokus ↗
+            <button type="button" onclick="event.stopPropagation(); switchFocus('maps')" class="tactile-btn px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-[8.5px] font-bold" title="Perbesar Layar Penuh Google Maps">
+              ⛶ Fokus
             </button>
           </div>
         </div>
@@ -1966,7 +1969,7 @@
 
         <div class="relative flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden">
           <iframe id="ytTheaterIframe"
-                  src="https://www.youtube.com/embed/jfKfPfyJRdk?enablejsapi=1&playsinline=1&rel=0&origin=https://elioux.app"
+                  src="about:blank"
                   referrerpolicy="strict-origin-when-cross-origin"
                   class="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -2043,72 +2046,12 @@
           </div>
         </div>
 
-        <!-- Simulated Realistic Google Maps Dark Canvas with Road Grids & Route -->
+        <!-- Clean Full-Focus Live Google Maps Container (No Fake SVG Blocking Map) -->
         <div id="mapCanvasContainer" class="relative flex-1 min-h-0 bg-[#090D15] overflow-hidden select-none">
             <iframe id="widescreenLiveMapIframe" 
-                    src="https://maps.google.com/maps?q=-6.2088,106.8456&z=15&output=embed" 
-                    class="absolute inset-0 w-full h-full border-0 filter contrast-[1.05]" 
-                    loading="lazy">
+                    src="about:blank" 
+                    class="absolute inset-0 w-full h-full border-0">
             </iframe>
-          
-          <!-- Detailed Vector Map Roads SVG -->
-          <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 900 480" preserveAspectRatio="none">
-            <defs>
-              <!-- Route Glow Filter -->
-              <filter id="routeGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="6" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-
-            <!-- Background Road Grid Network -->
-            <g stroke="#141C2A" stroke-linecap="round">
-              <line x1="0" y1="90" x2="900" y2="90" stroke-width="12" />
-              <line x1="0" y1="210" x2="900" y2="210" stroke-width="10" />
-              <line x1="0" y1="360" x2="900" y2="360" stroke-width="14" />
-              <line x1="180" y1="0" x2="180" y2="480" stroke-width="10" />
-              <line x1="420" y1="0" x2="420" y2="480" stroke-width="12" />
-              <line x1="680" y1="0" x2="680" y2="480" stroke-width="10" />
-            </g>
-
-            <!-- Diagonal Secondary Avenues -->
-            <g stroke="#1A2436" stroke-linecap="round">
-              <path d="M 0,400 Q 300,320 500,200 T 900,100" fill="none" stroke-width="16" />
-              <path d="M 120,480 Q 250,220 500,180 T 800,0" fill="none" stroke-width="14" />
-            </g>
-
-            <!-- HIGHWAY MAIN NAVIGATION CORRIDOR (Gatot Subroto / Tol Semanggi) -->
-            <!-- Highway Base Trench -->
-            <path d="M 20,440 C 240,360 380,240 560,190 S 760,130 920,80" fill="none" stroke="#0E1624" stroke-width="32" stroke-linecap="round" />
-            <!-- Highway Paved Border -->
-            <path d="M 20,440 C 240,360 380,240 560,190 S 760,130 920,80" fill="none" stroke="#1D2A40" stroke-width="26" stroke-linecap="round" />
-
-            <!-- ACTIVE BLUE TRAFFIC ROUTE LINE -->
-            <path d="M 20,440 C 240,360 380,240 560,190 S 760,130 920,80" fill="none" stroke="#1D4ED8" stroke-width="12" stroke-linecap="round" filter="url(#routeGlow)" />
-            <path d="M 20,440 C 240,360 380,240 560,190 S 760,130 920,80" fill="none" stroke="#60A5FA" stroke-width="6" stroke-linecap="round" />
-            <!-- Neon Cyan Center Guidance Beam -->
-            <path d="M 20,440 C 240,360 380,240 560,190 S 760,130 920,80" fill="none" stroke="#00E5FF" stroke-width="2" stroke-dasharray="14 18" stroke-linecap="round" class="animate-pulse" />
-
-            <!-- Congestion Accent (Orange Segment near Junction) -->
-            <path d="M 390,235 C 440,215 500,200 550,192" fill="none" stroke="#F59E0B" stroke-width="6" stroke-linecap="round" />
-
-            <!-- GPS LIVE VEHICLE PUCK (Toyota Innova Navigation Indicator) -->
-            <g transform="translate(430, 220)">
-              <!-- Pulsing Radar Pulse Wave -->
-              <circle cx="0" cy="0" r="28" fill="var(--theme-accent)" opacity="0.15" class="animate-ping" />
-              <circle cx="0" cy="0" r="16" fill="var(--theme-accent)" opacity="0.3" />
-              <!-- Outer Ring -->
-              <circle cx="0" cy="0" r="9" fill="#0A0E17" stroke="var(--theme-accent)" stroke-width="2.5" />
-              <!-- Center Core Pointer -->
-              <polygon points="0,-7 5,5 0,3 -5,5" fill="var(--theme-accent)" />
-            </g>
-
-            <!-- Road Labels on Map -->
-            <text x="210" y="380" fill="#64748B" font-size="10" font-family="sans-serif" font-weight="600" transform="rotate(-20 210 380)">Jl. Gatot Subroto</text>
-            <text x="620" y="160" fill="#38BDF8" font-size="10" font-family="sans-serif" font-weight="700" transform="rotate(-15 620 160)">Tol Dalam Kota ➔</text>
-            <text x="140" y="240" fill="#475569" font-size="9" font-family="sans-serif">Kuningan Barat</text>
-            <text x="700" y="280" fill="#475569" font-size="9" font-family="sans-serif">Pancoran Flyover</text>
-          </svg>
 
           <!-- Top Turn-by-Turn Instruction Banner (Floating on Map) -->
           <div class="absolute top-2.5 left-3 right-3 z-20 flex items-center justify-between gap-3 pointer-events-none">
@@ -2747,6 +2690,13 @@
     let isDrawerOpen = false;
     let currentFocus = 'dashboard';
 
+    let currentMapEmbedUrl = 'https://maps.google.com/maps?q=-6.2088,106.8456&z=15&output=embed';
+
+    function getCurrentYtEmbedUrl(autoplay) {
+      return 'https://www.youtube.com/embed/' + encodeURIComponent(currentYtVideoId) +
+        '?playsinline=1&rel=0&modestbranding=1' + (autoplay ? '&autoplay=1' : '');
+    }
+
     function switchFocus(target) {
       playTactileClick(950);
       currentFocus = target;
@@ -2757,6 +2707,11 @@
       const btnDash = document.getElementById('viewBtnDashboard');
       const btnYt = document.getElementById('viewBtnYtFocus');
       const btnMaps = document.getElementById('viewBtnMapsFocus');
+
+      const ytTile = document.getElementById('ytTileIframe');
+      const ytTheater = document.getElementById('ytTheaterIframe');
+      const mapTile = document.getElementById('liveMapIframe');
+      const mapWide = document.getElementById('widescreenLiveMapIframe');
 
       if (viewDash) viewDash.classList.add('hidden');
       if (viewYt) viewYt.classList.add('hidden');
@@ -2769,12 +2724,26 @@
       if (target === 'youtube') {
         if (viewYt) viewYt.classList.remove('hidden');
         if (btnYt) btnYt.className = 'tactile-btn px-2 py-0.5 rounded text-[8px] font-mono font-bold text-white bg-red-600 cursor-pointer';
+        // Unload background tile iframes to save RAM & prevent double audio
+        if (ytTile) ytTile.src = 'about:blank';
+        if (mapTile) mapTile.src = 'about:blank';
+        if (mapWide) mapWide.src = 'about:blank';
+        if (ytTheater) ytTheater.src = getCurrentYtEmbedUrl(false);
       } else if (target === 'maps') {
         if (viewMaps) viewMaps.classList.remove('hidden');
         if (btnMaps) btnMaps.className = 'tactile-btn px-2 py-0.5 rounded text-[8px] font-mono font-bold text-white bg-blue-600 cursor-pointer';
+        // Unload background tile iframes so Maps focuses 100% smoothly
+        if (ytTile) ytTile.src = 'about:blank';
+        if (ytTheater) ytTheater.src = 'about:blank';
+        if (mapTile) mapTile.src = 'about:blank';
+        if (mapWide) mapWide.src = currentMapEmbedUrl;
       } else {
         if (viewDash) viewDash.classList.remove('hidden');
         if (btnDash) btnDash.className = 'tactile-btn px-2 py-0.5 rounded text-[8px] font-mono font-bold text-slate-950 bg-[var(--theme-accent)] cursor-pointer';
+        if (ytTheater) ytTheater.src = 'about:blank';
+        if (mapWide) mapWide.src = 'about:blank';
+        if (ytTile && (!ytTile.src || ytTile.src === 'about:blank')) ytTile.src = getCurrentYtEmbedUrl(false);
+        if (mapTile && (!mapTile.src || mapTile.src === 'about:blank')) mapTile.src = currentMapEmbedUrl;
       }
     }
 
@@ -3242,7 +3211,7 @@
           btn.className = 'tactile-btn bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] shadow-sm cursor-pointer';
         }
         if (overlay) {
-          overlay.classList.add('pointer-events-none');
+          overlay.classList.add('pointer-events-none', 'hidden');
           overlay.style.opacity = '0';
         }
         if (diagAcc) {
@@ -3257,7 +3226,7 @@
           btn.className = 'tactile-btn bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] shadow-sm cursor-pointer';
         }
         if (overlay) {
-          overlay.classList.remove('pointer-events-none');
+          overlay.classList.remove('pointer-events-none', 'hidden');
           overlay.style.opacity = '1';
         }
         if (diagAcc) {
@@ -3543,8 +3512,12 @@
       const turnText = document.getElementById('mapTargetTurnText');
       
       const mapUrl = 'https://maps.google.com/maps?q=' + lat + ',' + lon + '&z=16&output=embed';
-      if (tileIframe) tileIframe.src = mapUrl;
-      if (widescreenIframe) widescreenIframe.src = mapUrl;
+      currentMapEmbedUrl = mapUrl;
+      if (currentFocus === 'maps') {
+        if (widescreenIframe) widescreenIframe.src = mapUrl;
+      } else if (currentFocus === 'dashboard') {
+        if (tileIframe) tileIframe.src = mapUrl;
+      }
       lastMapEmbedLat = lat;
       lastMapEmbedLon = lon;
       lastMapEmbedAt = Date.now();
@@ -3826,10 +3799,12 @@
       const titleEl = document.getElementById('ytVideoTitle');
       const theaterTitleEl = document.getElementById('theaterYtTitle');
 
-      const newUrl = 'https://www.youtube.com/embed/' + encodeURIComponent(videoId) +
-        '?enablejsapi=1&autoplay=1&playsinline=1&rel=0&origin=https://elioux.app';
-      if (tileIframe) tileIframe.src = newUrl;
-      if (theaterIframe) theaterIframe.src = newUrl;
+      const newUrl = getCurrentYtEmbedUrl(true);
+      if (currentFocus === 'youtube') {
+        if (theaterIframe) theaterIframe.src = newUrl;
+      } else {
+        if (tileIframe) tileIframe.src = newUrl;
+      }
       if (titleEl && title) titleEl.textContent = title;
       if (theaterTitleEl && title) theaterTitleEl.textContent = '| ' + title;
     }
@@ -3880,6 +3855,27 @@
         window.open('https://www.youtube.com/watch?v=' + encodeURIComponent(currentYtVideoId), '_blank');
       }
     }
+
+    const gaugeStyleOrder = ['lfa', 'classic', 'hud', 'honda'];
+    const gaugeStyleNames = { lfa: 'Lexus LFA Digital', classic: 'Innova Classic Analog', hud: 'Minimalist HUD', honda: 'Honda Type R Cyber' };
+    let currentGaugeIdx = 0;
+
+    function cycleSpeedometerStyle() {
+      currentGaugeIdx = (currentGaugeIdx + 1) % gaugeStyleOrder.length;
+      const nextStyle = gaugeStyleOrder[currentGaugeIdx];
+      setSpeedometerStyle(nextStyle);
+      showCockpitToast('Speedometer: ' + (gaugeStyleNames[nextStyle] || nextStyle));
+    }
+
+    // Bind tap-to-switch-style on all 4 speedometer cluster containers
+    ['cluster_lfa', 'cluster_classic', 'cluster_hud', 'cluster_honda'].forEach(function (cid) {
+      const el = document.getElementById(cid);
+      if (el) {
+        el.classList.add('clickable-card');
+        el.title = 'Ketuk untuk ganti gaya Speedometer';
+        el.addEventListener('click', cycleSpeedometerStyle);
+      }
+    });
 
     // Initial setup (Real Hardware Sensor Mode on Android, Simulator only on Browser Preview)
     applyCustomHex('#00E5FF');
