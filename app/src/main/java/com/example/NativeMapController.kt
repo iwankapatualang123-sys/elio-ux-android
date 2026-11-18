@@ -15,28 +15,35 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.LocationSource
-import com.google.android.gms.maps.MapView
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MapStyleOptions
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
 import org.json.JSONObject
+import org.maplibre.android.LibraryLoader
+import org.maplibre.android.MapLibre
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
+import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.modes.CameraMode
+import org.maplibre.android.location.modes.RenderMode
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.PropertyFactory.circleColor
+import org.maplibre.android.style.layers.PropertyFactory.circleRadius
+import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
+import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.Point
 import java.util.Locale
 import java.util.concurrent.Executors
 
 /**
- * Peta Google native yang diletakkan DI BELAKANG WebView. Halaman web "melubangi" kartu peta
- * (latar transparan) dan melaporkan posisi lubang lewat setRect(), sehingga kolom pencarian,
- * HUD, dan menu HTML tetap tampil di atas peta.
+ * Peta native OpenStreetMap (MapLibre + gaya gelap OpenFreeMap; gratis, tanpa API key) yang
+ * diletakkan DI BELAKANG WebView. Halaman web "melubangi" kartu peta (latar transparan) dan
+ * melaporkan posisi lubang lewat setRect(), sehingga pencarian, HUD, dan menu HTML tetap di atas.
  */
-class NativeMapController(
+class NativeMapController private constructor(
     private val context: Context,
     container: TouchRouterLayout,
     savedState: Bundle?,
@@ -44,19 +51,23 @@ class NativeMapController(
 ) {
     companion object {
         private const val STATE_KEY = "elio_native_map"
+        private const val STYLE_URL = "https://tiles.openfreemap.org/styles/dark"
+        private const val DEST_SOURCE = "elio-dest-source"
+        private const val DEST_LAYER = "elio-dest-layer"
+        private const val EMPTY_GEOJSON = """{"type":"FeatureCollection","features":[]}"""
 
-        fun isAvailable(context: Context): Boolean {
-            val key = try {
-                @Suppress("DEPRECATION")
-                context.packageManager
-                    .getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
-                    .metaData?.getString("com.google.android.geo.API_KEY")
-            } catch (_: Exception) {
-                null
-            }
-            if (key.isNullOrBlank()) return false
-            return GoogleApiAvailability.getInstance()
-                .isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS
+        /** null jika mesin peta tidak bisa dimuat di perangkat ini -> halaman memakai peta web. */
+        fun create(
+            context: Context,
+            container: TouchRouterLayout,
+            savedState: Bundle?,
+            runJs: (String) -> Unit,
+        ): NativeMapController? = try {
+            MapLibre.getInstance(context.applicationContext)
+            LibraryLoader.load()
+            NativeMapController(context, container, savedState, runJs)
+        } catch (_: Throwable) {
+            null
         }
     }
 
@@ -67,13 +78,15 @@ class NativeMapController(
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val geocodeExecutor = Executors.newSingleThreadExecutor()
-    private var map: GoogleMap? = null
+    private var map: MapLibreMap? = null
+    private var style: Style? = null
+    private var destSource: GeoJsonSource? = null
+    private var pendingDest: LatLng? = null
     private var followCar = true
+    private var wasMoving = false
+    private var locationActive = false
     private var lastFix: Location? = null
     private var lastSpeedKmh = 0f
-    private var locationListener: LocationSource.OnLocationChangedListener? = null
-    private var searchMarker: Marker? = null
-    private var myLocationLayerOn = false
 
     init {
         mapView.onCreate(savedState?.getBundle(STATE_KEY))
@@ -82,79 +95,97 @@ class NativeMapController(
         mapView.getMapAsync { setupMap(it) }
     }
 
-    private fun setupMap(m: GoogleMap) {
+    private fun setupMap(m: MapLibreMap) {
         map = m
-        try {
-            m.setMapStyle(MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style_night))
-        } catch (_: Exception) {}
-        m.isTrafficEnabled = true
-        m.isBuildingsEnabled = false
         m.uiSettings.apply {
             isCompassEnabled = true
-            isMyLocationButtonEnabled = false
-            isMapToolbarEnabled = false
-            isZoomControlsEnabled = false
             isTiltGesturesEnabled = false
+            isLogoEnabled = false
+            isAttributionEnabled = true // wajib: kredit data OpenStreetMap
         }
-        // Titik biru memakai data GPS yang sudah ada (tanpa sumber lokasi kedua).
-        m.setLocationSource(object : LocationSource {
-            override fun activate(listener: LocationSource.OnLocationChangedListener) {
-                locationListener = listener
-                lastFix?.let { listener.onLocationChanged(it) }
-            }
-
-            override fun deactivate() {
-                locationListener = null
-            }
-        })
-        m.setOnCameraMoveStartedListener { reason ->
-            if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) followCar = false
+        m.addOnCameraMoveStartedListener { reason ->
+            if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE) followCar = false
         }
         val fix = lastFix
         if (fix != null) {
-            m.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(fix.latitude, fix.longitude), 16f))
+            m.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(fix.latitude, fix.longitude), 16.0))
         } else {
-            m.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(-2.5, 118.0), 4.5f))
+            m.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(-2.5, 118.0), 4.0))
         }
-        enableMyLocationLayer()
+        m.setStyle(Style.Builder().fromUri(STYLE_URL)) { loaded ->
+            style = loaded
+            addDestinationLayer(loaded)
+            activateLocation()
+        }
     }
 
-    @SuppressLint("MissingPermission")
-    private fun enableMyLocationLayer() {
-        val m = map ?: return
-        if (myLocationLayerOn) return
-        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+    private fun addDestinationLayer(s: Style) {
+        val source = GeoJsonSource(DEST_SOURCE)
+        s.addSource(source)
+        s.addLayer(
+            CircleLayer(DEST_LAYER, DEST_SOURCE).withProperties(
+                circleRadius(9f),
+                circleColor("#10B981"),
+                circleStrokeColor("#FFFFFF"),
+                circleStrokeWidth(3f),
+            )
+        )
+        destSource = source
+        pendingDest?.let { setDestinationPoint(it) }
+    }
+
+    private fun hasLocationPermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
-        if (!granted) return
+
+    // Titik mobil memakai data GPS yang sudah ada (tanpa sumber lokasi kedua).
+    @SuppressLint("MissingPermission")
+    private fun activateLocation() {
+        if (locationActive) return
+        val m = map ?: return
+        val s = style ?: return
+        if (!hasLocationPermission()) return
         try {
-            m.isMyLocationEnabled = true
-            myLocationLayerOn = true
-        } catch (_: SecurityException) {}
+            val lc = m.locationComponent
+            lc.activateLocationComponent(
+                LocationComponentActivationOptions.builder(context, s)
+                    .useDefaultLocationEngine(false)
+                    .build()
+            )
+            lc.isLocationComponentEnabled = true
+            lc.renderMode = RenderMode.GPS
+            lastFix?.let { lc.forceLocationUpdate(it) }
+            locationActive = true
+            if (followCar) startTracking()
+        } catch (_: Throwable) {}
+    }
+
+    private fun startTracking() {
+        val m = map ?: return
+        val fix = lastFix
+        val moving = lastSpeedKmh > 8f
+        wasMoving = moving
+        if (locationActive) {
+            val lc = m.locationComponent
+            lc.cameraMode = CameraMode.TRACKING_GPS
+            lc.zoomWhileTracking(if (moving) 17.0 else 16.0)
+            lc.tiltWhileTracking(if (moving) 45.0 else 0.0)
+        } else if (fix != null) {
+            m.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(fix.latitude, fix.longitude), 16.0))
+        }
     }
 
     fun onLocation(location: Location, speedKmh: Float) {
-        val firstFix = lastFix == null
         lastFix = location
         lastSpeedKmh = speedKmh
-        locationListener?.onLocationChanged(location)
-        enableMyLocationLayer()
-        if (followCar && mapView.visibility == View.VISIBLE) moveToCar(animate = !firstFix)
-    }
-
-    private fun moveToCar(animate: Boolean) {
-        val m = map ?: return
-        val fix = lastFix ?: return
-        val moving = lastSpeedKmh > 8f
-        val position = CameraPosition.Builder()
-            .target(LatLng(fix.latitude, fix.longitude))
-            .zoom(if (moving) 17f else 16f)
-            .bearing(if (moving && fix.hasBearing()) fix.bearing else m.cameraPosition.bearing)
-            .tilt(if (moving) 45f else 0f)
-            .build()
-        val update = CameraUpdateFactory.newCameraPosition(position)
-        if (animate) m.animateCamera(update, 900, null) else m.moveCamera(update)
+        activateLocation()
+        if (locationActive) map?.locationComponent?.forceLocationUpdate(location)
+        val moving = speedKmh > 8f
+        if (followCar && mapView.visibility == View.VISIBLE && (!locationActive || moving != wasMoving)) {
+            startTracking()
+        }
     }
 
     /** Posisi & ukuran lubang kartu peta dalam piksel layar; ukuran 0 = sembunyikan. */
@@ -173,12 +204,12 @@ class NativeMapController(
         }
         val wasHidden = mapView.visibility != View.VISIBLE
         mapView.visibility = View.VISIBLE
-        if (wasHidden && followCar) moveToCar(animate = false)
+        if (wasHidden && followCar) startTracking()
     }
 
     fun recenter() {
         followCar = true
-        moveToCar(animate = true)
+        startTracking()
     }
 
     fun search(query: String) {
@@ -189,6 +220,7 @@ class NativeMapController(
         }
     }
 
+    // Geocoder bawaan Android: tanpa API key.
     @Suppress("DEPRECATION")
     private fun geocode(query: String, near: Location?): Address? {
         if (!Geocoder.isPresent()) return null
@@ -209,6 +241,16 @@ class NativeMapController(
         }
     }
 
+    private fun setDestinationPoint(target: LatLng) {
+        val source = destSource
+        if (source == null) {
+            pendingDest = target
+            return
+        }
+        pendingDest = null
+        source.setGeoJson(Feature.fromGeometry(Point.fromLngLat(target.longitude, target.latitude)))
+    }
+
     private fun showSearchResult(query: String, address: Address?) {
         val m = map
         if (address == null || m == null) {
@@ -216,32 +258,31 @@ class NativeMapController(
             return
         }
         val target = LatLng(address.latitude, address.longitude)
-        val detail = address.getAddressLine(0) ?: query
-        searchMarker?.remove()
-        searchMarker = m.addMarker(MarkerOptions().position(target).title(query).snippet(detail))
-        searchMarker?.showInfoWindow()
+        setDestinationPoint(target)
         followCar = false
+        if (locationActive) m.locationComponent.cameraMode = CameraMode.NONE
         val fix = lastFix
         try {
             if (fix != null) {
-                val bounds = LatLngBounds.builder()
+                val bounds = LatLngBounds.Builder()
                     .include(target)
                     .include(LatLng(fix.latitude, fix.longitude))
                     .build()
                 val padding = (60 * context.resources.displayMetrics.density).toInt()
                 m.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding))
             } else {
-                m.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 15f))
+                m.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 15.0))
             }
         } catch (_: Exception) {
-            m.moveCamera(CameraUpdateFactory.newLatLngZoom(target, 15f))
+            m.moveCamera(CameraUpdateFactory.newLatLngZoom(target, 15.0))
         }
+        val detail = address.getAddressLine(0) ?: query
         runJs("window.onNativeMapSearchResult && window.onNativeMapSearchResult(true, ${JSONObject.quote(detail)})")
     }
 
     fun clearSearch() {
-        searchMarker?.remove()
-        searchMarker = null
+        pendingDest = null
+        destSource?.setGeoJson(EMPTY_GEOJSON)
         recenter()
     }
 

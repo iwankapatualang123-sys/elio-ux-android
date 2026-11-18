@@ -1000,8 +1000,8 @@
         <!-- Pilihan peta: Google native (Maps SDK) atau web embed -->
         <div id="nativeMapSettingRow" class="hidden bg-black/40 p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
           <div>
-            <span class="text-[10px] font-bold text-white font-mono">PETA GOOGLE NATIVE</span>
-            <p class="text-[8.5px] text-slate-400">Peta mulus yang mengikuti mobil + info lalu lintas. Matikan jika peta tampil kosong/abu-abu.</p>
+            <span class="text-[10px] font-bold text-white font-mono">PETA NATIVE (OPENSTREETMAP)</span>
+            <p class="text-[8.5px] text-slate-400">Peta gelap yang mulus mengikuti mobil, gratis tanpa API key. Matikan untuk kembali ke peta web Google.</p>
           </div>
           <button type="button" id="nativeMapBtn" onclick="toggleNativeMapPref()" class="tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer">🗺️ Peta Native: OFF</button>
         </div>
@@ -3578,6 +3578,7 @@
         // Ada tujuan hasil pencarian -> langsung navigasi suara ke sana.
         // Kosong -> buka Maps di posisi mobil, pengguna pilih tujuan di sana.
         window.ElioNativeBridge.openGoogleMapsIntent(mapDestination || '');
+        pipTipPending = true;
       } else if (mapDestination) {
         window.open('https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(mapDestination), '_blank');
       } else {
@@ -3618,8 +3619,8 @@
     function showRouteToDestination() {
       if (!mapDestination) return;
       if (nativeMapOn) {
-        // Peta native tidak menggambar rute (butuh Directions API berbayar):
-        // tampilkan pilihan rute di app Google Maps tanpa langsung mulai navigasi.
+        // Peta native tidak menggambar rute: tampilkan pilihan rute di app Google Maps
+        // tanpa langsung memulai navigasi.
         playTactileClick(1000);
         window.ElioNativeBridge.openGoogleMapsRoute(mapDestination);
         return;
@@ -3644,6 +3645,18 @@
         setMapLocation(lastRealLat, lastRealLon, 'Posisi Mobil');
       }
     }
+
+    // Tips Picture-in-Picture: tampil saat kembali dari Google Maps, maksimal 3 kali.
+    let pipTipPending = false;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible' || !pipTipPending) return;
+      pipTipPending = false;
+      let shown = 0;
+      try { shown = parseInt(localStorage.getItem('elioPipTipCount') || '0', 10) || 0; } catch (e) {}
+      if (shown >= 3) return;
+      try { localStorage.setItem('elioPipTipCount', String(shown + 1)); } catch (e) {}
+      showCockpitToast('Tips: saat navigasi, tekan tombol Home — Google Maps mengecil dan tetap tampil di atas dashboard');
+    });
 
     window.onNativeMapSearchResult = function (found, label) {
       if (!found) showCockpitToast('Lokasi tidak ditemukan di peta. Tekan 🧭 Navigasi untuk mencari di Google Maps.');
@@ -3715,7 +3728,7 @@
       const on = !nativeMapOn;
       try { localStorage.setItem('elioNativeMap', on ? '1' : '0'); } catch (e) {}
       setNativeMapMode(on);
-      showCockpitToast(on ? 'Peta Google native aktif' : 'Peta web (embed) aktif');
+      showCockpitToast(on ? 'Peta native (OpenStreetMap) aktif' : 'Peta web Google aktif');
     }
 
     function renderNativeMapSetting() {

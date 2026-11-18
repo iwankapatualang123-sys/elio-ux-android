@@ -319,8 +319,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         }
 
         rootContainer.addView(webView)
-        if (NativeMapController.isAvailable(this)) {
-            nativeMap = NativeMapController(this, rootContainer, savedInstanceState) { evaluateJs(it) }
+        nativeMap = NativeMapController.create(this, rootContainer, savedInstanceState) { evaluateJs(it) }
+        if (nativeMap != null) {
             rootContainer.hitTester = { x, y, done ->
                 webView.evaluateJavascript(
                     "window.__elioMapHitTest ? window.__elioMapHitTest($x, $y) : false"

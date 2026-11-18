@@ -3,9 +3,6 @@ plugins {
 }
 
 // Diisi GitHub Actions dari Secrets; kosong saat build lokal / AI Studio.
-val mapsApiKey: String = providers.environmentVariable("MAPS_API_KEY")
-  .orElse(providers.gradleProperty("MAPS_API_KEY"))
-  .getOrElse("")
 val fixedKeystorePath: String? = providers.environmentVariable("ELIO_KEYSTORE_PATH").orNull
 val fixedStorePassword: String? = providers.environmentVariable("ELIO_STORE_PASSWORD").orNull
 
@@ -19,8 +16,8 @@ android {
     targetSdk = 36
     versionCode = 1
     versionName = "1.0"
-    // Tanpa key, aplikasi otomatis memakai peta web (embed) seperti sebelumnya.
-    manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+    // Mesin peta MapLibre berisi library native per arsitektur CPU: HP/tablet ARM + emulator x86_64.
+    ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64") }
   }
 
   // Do not remove or modify these signingConfigs. They are necessary for building, installing,
@@ -66,8 +63,7 @@ android {
   }
 }
 
-// Kunci tanda tangan tetap dari GitHub Secrets: update APK cukup ditimpa, dan SHA-1 tetap
-// sama sehingga API key Google Maps yang dikunci ke aplikasi ini terus berlaku.
+// Kunci tanda tangan tetap dari GitHub Secrets: update APK cukup ditimpa tanpa uninstall.
 if (fixedKeystorePath != null && fixedStorePassword != null && file(fixedKeystorePath).exists()) {
   android.signingConfigs.create("elioFixed") {
     storeFile = file(fixedKeystorePath)
@@ -83,5 +79,5 @@ dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.appcompat)
   implementation(libs.play.services.location)
-  implementation(libs.play.services.maps)
+  implementation(libs.maplibre.android)
 }

@@ -25,11 +25,6 @@
         android:hardwareAccelerated="true"
         android:theme="@style/Theme.ElioUX.Fullscreen">
 
-        <!-- Google Maps SDK; nilai diisi dari GitHub Secret MAPS_API_KEY saat build -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}" />
-
         <!-- Main Automotive Launcher Activity -->
         <activity
             android:name=".MainActivity"
