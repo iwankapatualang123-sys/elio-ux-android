@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Elio Speedo</string>
+    <string name="lock_admin_label">Kunci layar otomatis Elio Speedo</string>
+    <string name="lock_admin_description">Dipakai hanya untuk mengunci layar saat charger dicabut dan kendaraan dimatikan.</string>
 </resources>

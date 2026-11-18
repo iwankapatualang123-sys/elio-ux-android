@@ -49,6 +49,21 @@
             </intent-filter>
         </activity>
 
+        <!-- Izin kunci layar: dipakai saat charger dicabut (kendaraan mati) -->
+        <receiver
+            android:name=".LockAdminReceiver"
+            android:description="@string/lock_admin_description"
+            android:label="@string/lock_admin_label"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Auto-nyala saat HP boot/restart (untuk pemakaian sebagai head unit mobil) -->
         <receiver
             android:name=".BootReceiver"

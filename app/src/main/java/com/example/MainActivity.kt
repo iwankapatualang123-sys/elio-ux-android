@@ -51,6 +51,8 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.roundToInt
@@ -61,7 +63,18 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
         private const val SENSOR_PUSH_INTERVAL_MS = 350L
+        private const val AUTO_LOCK_DELAY_MS = 10_000L
+        private const val PREFS = "elio_prefs"
+        private const val KEY_LOCK_ADMIN_ASKED = "lock_admin_asked"
     }
+
+    // Kunci layar saat charger dicabut (kendaraan mati): butuh izin Administrator perangkat.
+    private val lockAdmin: ComponentName by lazy { ComponentName(this, LockAdminReceiver::class.java) }
+    private val devicePolicy: DevicePolicyManager by lazy {
+        getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+    }
+    private var autoLockPending = false
+    private val autoLockRunnable = Runnable { lockDeviceNow() }
 
     // Halaman lokal disajikan dari origin https berbasis ID aplikasi (format yang diminta YouTube
     // untuk embed di WebView). Tanpa origin -> Error 153; mengaku youtube.com -> Error 152.
@@ -132,6 +145,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                     isAccPowerOn = true
                     isBatteryCharging = true
                     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    cancelAutoLock("charger")
                     evaluateJs("if (window.onAccPowerStateChanged) window.onAccPowerStateChanged(true);")
                     pushSensorTelemetry(force = true)
                 }
@@ -139,6 +153,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                     isAccPowerOn = false
                     isBatteryCharging = false
                     evaluateJs("if (window.onAccPowerStateChanged) window.onAccPowerStateChanged(false);")
+                    startAutoLockCountdown()
                     pushSensorTelemetry(force = true)
                 }
                 Intent.ACTION_BATTERY_CHANGED -> {
@@ -418,6 +433,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
 
         if (fineGranted || coarseGranted) {
             startLocationUpdates()
+            askLockAdminOnFirstRun()
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -442,6 +458,61 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             startLocationUpdates()
         } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             evaluateJs("if (window.onNativeGpsPermissionDenied) window.onNativeGpsPermissionDenied();")
+        }
+        // Izin kunci layar ditanyakan setelah dialog izin lokasi selesai, agar tidak bertabrakan.
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) askLockAdminOnFirstRun()
+    }
+
+    private fun isLockAdminActive(): Boolean =
+        try { devicePolicy.isAdminActive(lockAdmin) } catch (_: Exception) { false }
+
+    private fun requestLockAdmin() {
+        if (isLockAdminActive()) return
+        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+            .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, lockAdmin)
+            .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, getString(R.string.lock_admin_description))
+        try { startActivity(intent) } catch (_: Exception) {}
+    }
+
+    // Saat pertama dipasang: tanyakan izin kunci layar sekali. Setelahnya lewat Pengaturan > Daya.
+    private fun askLockAdminOnFirstRun() {
+        val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_LOCK_ADMIN_ASKED, false) || isLockAdminActive()) return
+        prefs.edit().putBoolean(KEY_LOCK_ADMIN_ASKED, true).apply()
+        mainHandler.postDelayed({ requestLockAdmin() }, 600)
+    }
+
+    private fun startAutoLockCountdown() {
+        mainHandler.removeCallbacks(autoLockRunnable)
+        autoLockPending = true
+        // Layar tetap menyala selama pop-up tampil; dikunci setelah 10 detik tanpa jawaban.
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        mainHandler.postDelayed(autoLockRunnable, AUTO_LOCK_DELAY_MS)
+        evaluateJs(
+            "if (window.onVehicleOffPrompt) window.onVehicleOffPrompt(" +
+                "${AUTO_LOCK_DELAY_MS / 1000}, ${isLockAdminActive()});"
+        )
+    }
+
+    private fun cancelAutoLock(reason: String) {
+        if (!autoLockPending) return
+        mainHandler.removeCallbacks(autoLockRunnable)
+        autoLockPending = false
+        evaluateJs("if (window.onVehicleOffPromptClosed) window.onVehicleOffPromptClosed('$reason');")
+    }
+
+    private fun lockDeviceNow() {
+        mainHandler.removeCallbacks(autoLockRunnable)
+        autoLockPending = false
+        evaluateJs("if (window.onVehicleOffPromptClosed) window.onVehicleOffPromptClosed('locked');")
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (isLockAdminActive()) {
+            try { devicePolicy.lockNow() } catch (_: SecurityException) {}
+        } else {
+            evaluateJs(
+                "if (window.showCockpitToast) showCockpitToast('Izin kunci layar belum aktif: " +
+                    "layar mati mengikuti waktu tunggu sistem. Aktifkan di Pengaturan > Daya.');"
+            )
         }
     }
 
@@ -796,6 +867,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         registerSensors()
         startLocationUpdates()
         pushAllHardwareSnapshots()
+        // Perbarui status izin kunci layar (mis. setelah kembali dari layar aktivasi admin)
+        evaluateJs("if (window.onLockAdminStatus) window.onLockAdminStatus(${isLockAdminActive()});")
     }
 
     override fun onPause() {
@@ -812,6 +885,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     }
 
     override fun onDestroy() {
+        mainHandler.removeCallbacks(autoLockRunnable)
         super.onDestroy()
         sensorManager?.unregisterListener(this)
         try { locationManager?.removeUpdates(this) } catch (_: Exception) {}
@@ -856,6 +930,39 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             activity.mainHandler.post {
                 activity.pushGpsTelemetry()
             }
+        }
+
+        @JavascriptInterface
+        fun isLockAdminActive(): Boolean = activity.isLockAdminActive()
+
+        @JavascriptInterface
+        fun requestLockAdmin() {
+            activity.mainHandler.post { activity.requestLockAdmin() }
+        }
+
+        @JavascriptInterface
+        fun removeLockAdmin() {
+            activity.mainHandler.post {
+                try { activity.devicePolicy.removeActiveAdmin(activity.lockAdmin) } catch (_: Exception) {}
+                activity.mainHandler.postDelayed({
+                    activity.evaluateJs("if (window.onLockAdminStatus) window.onLockAdminStatus(${activity.isLockAdminActive()});")
+                }, 600)
+            }
+        }
+
+        @JavascriptInterface
+        fun confirmVehicleOff() {
+            activity.mainHandler.post { activity.lockDeviceNow() }
+        }
+
+        @JavascriptInterface
+        fun cancelVehicleOff() {
+            activity.mainHandler.post { activity.cancelAutoLock("user") }
+        }
+
+        @JavascriptInterface
+        fun testVehicleOffPrompt() {
+            activity.mainHandler.post { activity.startAutoLockCountdown() }
         }
 
         @JavascriptInterface
