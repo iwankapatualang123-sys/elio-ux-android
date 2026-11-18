@@ -47,8 +47,24 @@ jobs:
         with:
           gradle-version: 9.3.1
 
+      - name: Prepare fixed signing key
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$SIGNING_KEYSTORE_BASE64" ]; then
+            echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/elioux-signing.p12"
+            echo "ELIO_KEYSTORE_PATH=$RUNNER_TEMP/elioux-signing.p12" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Secret SIGNING_KEYSTORE_BASE64 belum diisi - APK memakai kunci debug acak (update harus uninstall dulu)."
+          fi
+
       - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon
+        env:
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+          ELIO_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        run: |
+          if [ -z "$MAPS_API_KEY" ]; then echo "::warning::Secret MAPS_API_KEY belum diisi - aplikasi memakai peta web (embed)."; fi
+          gradle :app:assembleDebug --no-daemon
 
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk ElioUX-debug.apk

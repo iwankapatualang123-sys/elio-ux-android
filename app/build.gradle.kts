@@ -2,6 +2,13 @@ plugins {
   alias(libs.plugins.android.application)
 }
 
+// Diisi GitHub Actions dari Secrets; kosong saat build lokal / AI Studio.
+val mapsApiKey: String = providers.environmentVariable("MAPS_API_KEY")
+  .orElse(providers.gradleProperty("MAPS_API_KEY"))
+  .getOrElse("")
+val fixedKeystorePath: String? = providers.environmentVariable("ELIO_KEYSTORE_PATH").orNull
+val fixedStorePassword: String? = providers.environmentVariable("ELIO_STORE_PASSWORD").orNull
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -12,6 +19,8 @@ android {
     targetSdk = 36
     versionCode = 1
     versionName = "1.0"
+    // Tanpa key, aplikasi otomatis memakai peta web (embed) seperti sebelumnya.
+    manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
   }
 
   // Do not remove or modify these signingConfigs. They are necessary for building, installing,
@@ -57,8 +66,22 @@ android {
   }
 }
 
+// Kunci tanda tangan tetap dari GitHub Secrets: update APK cukup ditimpa, dan SHA-1 tetap
+// sama sehingga API key Google Maps yang dikunci ke aplikasi ini terus berlaku.
+if (fixedKeystorePath != null && fixedStorePassword != null && file(fixedKeystorePath).exists()) {
+  android.signingConfigs.create("elioFixed") {
+    storeFile = file(fixedKeystorePath)
+    storePassword = fixedStorePassword
+    keyAlias = "elioux"
+    keyPassword = fixedStorePassword
+    storeType = "pkcs12"
+  }
+  android.buildTypes.getByName("debug").signingConfig = android.signingConfigs.getByName("elioFixed")
+}
+
 dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.appcompat)
   implementation(libs.play.services.location)
+  implementation(libs.play.services.maps)
 }

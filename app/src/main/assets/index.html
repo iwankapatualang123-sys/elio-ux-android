@@ -487,6 +487,17 @@
     }
     .map-dest-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a7f3d0; font-size: 13px; font-weight: 700; }
     .map-dest button.map-dest-secondary { background: rgba(255, 255, 255, 0.12); }
+    .map-overlay-row { pointer-events: none; }
+    .map-overlay-row button, .map-overlay-row .map-dest { pointer-events: auto; }
+
+    /* Peta Google native: halaman dibuat tembus pandang di area peta agar peta di belakang
+       WebView terlihat. Elemen lain (kartu, menu, HUD) tetap menutupinya seperti biasa. */
+    html.native-map-on, html.native-map-on body { background: transparent !important; }
+    html.native-map-on .native-map-card { background: transparent !important; }
+    html.native-map-on .native-map-card::before,
+    html.native-map-on .native-map-card::after { display: none !important; }
+    html.native-map-on [data-native-map-hole] { background: transparent !important; }
+    html.native-map-on [data-native-map-hole] > iframe { display: none !important; }
 
     /* Mode Hemat: matikan animasi & efek glow yang terus digambar ulang (berat di tablet lama) */
     body.eco-mode *, body.eco-mode *::before, body.eco-mode *::after {
@@ -984,6 +995,15 @@
             <p class="text-[8.5px] text-slate-400">Matikan animasi & efek glow supaya layar lebih ringan, tidak cepat panas, dan tombol responsif.</p>
           </div>
           <button type="button" id="ecoModeBtn" onclick="toggleEcoMode()" class="tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer">🍃 Mode Hemat: OFF</button>
+        </div>
+
+        <!-- Pilihan peta: Google native (Maps SDK) atau web embed -->
+        <div id="nativeMapSettingRow" class="hidden bg-black/40 p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold text-white font-mono">PETA GOOGLE NATIVE</span>
+            <p class="text-[8.5px] text-slate-400">Peta mulus yang mengikuti mobil + info lalu lintas. Matikan jika peta tampil kosong/abu-abu.</p>
+          </div>
+          <button type="button" id="nativeMapBtn" onclick="toggleNativeMapPref()" class="tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer">🗺️ Peta Native: OFF</button>
         </div>
 
         <!-- GAS Speed Simulation Slider -->
@@ -1928,7 +1948,7 @@
       </section>
 
       <!-- RIGHT TIER (4 Cols): REAL INTERACTIVE GOOGLE MAPS TILE -->
-      <section class="col-span-4 min-h-0 cockpit-glass rounded-xl overflow-hidden flex flex-col justify-between relative border border-blue-500/30 shadow-lg group">
+      <section class="native-map-card col-span-4 min-h-0 cockpit-glass rounded-xl overflow-hidden flex flex-col justify-between relative border border-blue-500/30 shadow-lg group">
         
         <!-- Maps Header (Tap anywhere on header to open Maps Fullscreen) -->
         <div onclick="switchFocus('maps')" class="clickable-card bg-black/80 px-2.5 py-1.5 flex items-center justify-between border-b border-white/[0.06] z-10 text-[9px] font-mono cursor-pointer">
@@ -1949,10 +1969,10 @@
         </div>
 
         <!-- Real Embedded Google Maps Canvas -->
-        <div class="relative flex-1 min-h-0 bg-[#090D15] overflow-hidden flex flex-col justify-between">
+        <div id="dashMapHole" data-native-map-hole class="relative flex-1 min-h-0 bg-[#090D15] overflow-hidden flex flex-col justify-between">
           <!-- Real Interactive Google Maps IFrame -->
-          <iframe id="liveMapIframe" 
-                  src="https://maps.google.com/maps?q=-6.2088,106.8456&z=15&output=embed" 
+          <iframe id="liveMapIframe"
+                  src="about:blank"
                   class="absolute inset-0 w-full h-full border-0 filter contrast-[1.05]" 
                   loading="lazy">
           </iframe>
@@ -1967,7 +1987,7 @@
           </form>
 
           <!-- Tujuan terpilih, riwayat pencarian, dan tombol navigasi -->
-          <div class="relative z-10 m-2 mt-auto flex items-end justify-between gap-2">
+          <div class="map-overlay-row relative z-10 m-2 mt-auto flex items-end justify-between gap-2">
             <div class="flex flex-col gap-1 min-w-0">
               <div data-dest class="hidden"></div>
               <div data-recent-places class="map-recent"></div>
@@ -2040,7 +2060,7 @@
 
     <!-- 2C. THEATER FOCUS VIEW: GOOGLE MAPS WIDESCREEN WITH HOLOGRAPHIC TRANSPARENT SPEEDOMETER HUD -->
     <main id="viewMapsWidescreen" class="hidden relative z-10 flex-1 min-h-0 my-1.5 pl-3 flex flex-col justify-between">
-      <div class="relative w-full h-full min-h-0 rounded-xl overflow-hidden cockpit-glass border border-blue-500/25 flex flex-col justify-between shadow-2xl">
+      <div class="native-map-card relative w-full h-full min-h-0 rounded-xl overflow-hidden cockpit-glass border border-blue-500/25 flex flex-col justify-between shadow-2xl">
         
         <!-- Maps Header Bar with HUD Controls -->
         <div class="bg-black/80 backdrop-blur-md px-3 py-1.5 flex items-center justify-between z-20 border-b border-white/10 text-xs">
@@ -2082,7 +2102,7 @@
         </div>
 
         <!-- Clean Full-Focus Live Google Maps Container (No Fake SVG Blocking Map) -->
-        <div id="mapCanvasContainer" class="relative flex-1 min-h-0 bg-[#090D15] overflow-hidden select-none">
+        <div id="mapCanvasContainer" data-native-map-hole class="relative flex-1 min-h-0 bg-[#090D15] overflow-hidden select-none">
             <iframe id="widescreenLiveMapIframe" 
                     src="about:blank" 
                     class="absolute inset-0 w-full h-full border-0">
@@ -2709,6 +2729,7 @@
     let currentFocus = 'dashboard';
 
     let currentMapEmbedUrl = 'https://maps.google.com/maps?q=-6.2088,106.8456&z=15&output=embed';
+    let nativeMapOn = false;
 
     function getCurrentYtEmbedUrl(autoplay) {
       // Beri tahu YouTube siapa yang menyematkan (origin aplikasi), selain lewat header Referer.
@@ -2758,15 +2779,16 @@
         if (ytTile) ytTile.src = 'about:blank';
         if (ytTheater) ytTheater.src = 'about:blank';
         if (mapTile) mapTile.src = 'about:blank';
-        if (mapWide) mapWide.src = currentMapEmbedUrl;
+        if (mapWide && !nativeMapOn) mapWide.src = currentMapEmbedUrl;
       } else {
         if (viewDash) viewDash.classList.remove('hidden');
         if (btnDash) btnDash.className = 'tactile-btn px-2 py-0.5 rounded text-[8px] font-mono font-bold text-slate-950 bg-[var(--theme-accent)] cursor-pointer';
         if (ytTheater) ytTheater.src = 'about:blank';
         if (mapWide) mapWide.src = 'about:blank';
         if (ytTile && (!ytTile.src || ytTile.src === 'about:blank')) ytTile.src = getCurrentYtEmbedUrl(false);
-        if (mapTile && (!mapTile.src || mapTile.src === 'about:blank')) mapTile.src = currentMapEmbedUrl;
+        if (mapTile && !nativeMapOn && (!mapTile.src || mapTile.src === 'about:blank')) mapTile.src = currentMapEmbedUrl;
       }
+      syncNativeMap();
     }
 
     function toggleSideDrawer(forceState) {
@@ -3535,7 +3557,10 @@
       
       const mapUrl = 'https://maps.google.com/maps?q=' + lat + ',' + lon + '&z=16&output=embed';
       currentMapEmbedUrl = mapUrl;
-      if (currentFocus === 'maps') {
+      if (nativeMapOn) {
+        // Peta native mengikuti mobil sendiri; cukup pusatkan ulang.
+        if (window.ElioNativeBridge && window.ElioNativeBridge.recenterNativeMap) window.ElioNativeBridge.recenterNativeMap();
+      } else if (currentFocus === 'maps') {
         if (widescreenIframe) widescreenIframe.src = mapUrl;
       } else if (currentFocus === 'dashboard') {
         if (tileIframe) tileIframe.src = mapUrl;
@@ -3568,6 +3593,7 @@
 
     function showMapEmbed(url) {
       currentMapEmbedUrl = url;
+      if (nativeMapOn) return;
       const tile = document.getElementById('liveMapIframe');
       const wide = document.getElementById('widescreenLiveMapIframe');
       if (currentFocus === 'maps') {
@@ -3583,6 +3609,7 @@
       playTactileClick(1000);
       mapDestination = q;
       showMapEmbed('https://maps.google.com/maps?q=' + encodeURIComponent(q) + '&z=15&output=embed');
+      if (nativeMapOn) window.ElioNativeBridge.searchNativeMap(q);
       saveRecentPlace(q);
       renderMapDestination();
       document.querySelectorAll('input[data-map-search]').forEach((input) => { input.value = q; });
@@ -3590,6 +3617,13 @@
 
     function showRouteToDestination() {
       if (!mapDestination) return;
+      if (nativeMapOn) {
+        // Peta native tidak menggambar rute (butuh Directions API berbayar):
+        // tampilkan pilihan rute di app Google Maps tanpa langsung mulai navigasi.
+        playTactileClick(1000);
+        window.ElioNativeBridge.openGoogleMapsRoute(mapDestination);
+        return;
+      }
       if (lastRealLat === null || lastRealLon === null) {
         showCockpitToast('Menunggu sinyal GPS untuk menampilkan rute');
         return;
@@ -3604,8 +3638,94 @@
       mapDestination = null;
       renderMapDestination();
       document.querySelectorAll('input[data-map-search]').forEach((input) => { input.value = ''; });
-      if (lastRealLat !== null && lastRealLon !== null) {
+      if (nativeMapOn) {
+        window.ElioNativeBridge.clearNativeMapSearch();
+      } else if (lastRealLat !== null && lastRealLon !== null) {
         setMapLocation(lastRealLat, lastRealLon, 'Posisi Mobil');
+      }
+    }
+
+    window.onNativeMapSearchResult = function (found, label) {
+      if (!found) showCockpitToast('Lokasi tidak ditemukan di peta. Tekan 🧭 Navigasi untuk mencari di Google Maps.');
+    };
+
+    /* ==========================================================================
+       PETA GOOGLE NATIVE (Maps SDK di belakang WebView, kartu peta "dilubangi")
+       ========================================================================== */
+    function nativeMapSupported() {
+      try {
+        return !!(window.ElioNativeBridge && window.ElioNativeBridge.isNativeMapAvailable &&
+          window.ElioNativeBridge.isNativeMapAvailable());
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function nativeMapPreferred() {
+      try { return localStorage.getItem('elioNativeMap') !== '0'; } catch (e) { return true; }
+    }
+
+    function setNativeMapMode(on) {
+      nativeMapOn = !!on && nativeMapSupported();
+      document.documentElement.classList.toggle('native-map-on', nativeMapOn);
+      const tile = document.getElementById('liveMapIframe');
+      const wide = document.getElementById('widescreenLiveMapIframe');
+      if (nativeMapOn) {
+        if (tile) tile.src = 'about:blank';
+        if (wide) wide.src = 'about:blank';
+        if (mapDestination) window.ElioNativeBridge.searchNativeMap(mapDestination);
+      } else {
+        if (tile && currentFocus === 'dashboard') tile.src = currentMapEmbedUrl;
+        if (wide && currentFocus === 'maps') wide.src = currentMapEmbedUrl;
+      }
+      renderNativeMapSetting();
+      syncNativeMap();
+    }
+
+    // Laporkan posisi kartu peta yang terlihat (piksel layar) ke peta native di belakang.
+    function syncNativeMap() {
+      const bridge = window.ElioNativeBridge;
+      if (!bridge || !bridge.setNativeMapRect) return;
+      let hole = null;
+      if (nativeMapOn) {
+        if (currentFocus === 'maps') hole = document.getElementById('mapCanvasContainer');
+        else if (currentFocus === 'dashboard') hole = document.getElementById('dashMapHole');
+      }
+      const r = hole ? hole.getBoundingClientRect() : null;
+      if (!r || r.width < 1 || r.height < 1) {
+        bridge.setNativeMapRect(0, 0, 0, 0);
+        return;
+      }
+      const dpr = window.devicePixelRatio || 1;
+      bridge.setNativeMapRect(Math.round(r.left * dpr), Math.round(r.top * dpr),
+        Math.round(r.width * dpr), Math.round(r.height * dpr));
+    }
+
+    // Dipanggil native saat jari menyentuh area peta: true = untuk peta, false = untuk tombol/menu HTML.
+    window.__elioMapHitTest = function (px, py) {
+      if (!nativeMapOn) return false;
+      const dpr = window.devicePixelRatio || 1;
+      const el = document.elementFromPoint(px / dpr, py / dpr);
+      return !!(el && el.hasAttribute && el.hasAttribute('data-native-map-hole'));
+    };
+
+    window.addEventListener('resize', () => requestAnimationFrame(syncNativeMap));
+
+    function toggleNativeMapPref() {
+      const on = !nativeMapOn;
+      try { localStorage.setItem('elioNativeMap', on ? '1' : '0'); } catch (e) {}
+      setNativeMapMode(on);
+      showCockpitToast(on ? 'Peta Google native aktif' : 'Peta web (embed) aktif');
+    }
+
+    function renderNativeMapSetting() {
+      const row = document.getElementById('nativeMapSettingRow');
+      const btn = document.getElementById('nativeMapBtn');
+      if (row) row.classList.toggle('hidden', !nativeMapSupported());
+      if (btn) {
+        btn.textContent = nativeMapOn ? '🗺️ Peta Native: ON' : '🗺️ Peta Native: OFF';
+        btn.className = 'tactile-btn px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border cursor-pointer ' +
+          (nativeMapOn ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-white/10 text-slate-300 border-white/20');
       }
     }
 
@@ -4061,6 +4181,10 @@
     if (ytTileInit && currentFocus === 'dashboard') ytTileInit.src = getCurrentYtEmbedUrl(false);
     renderRecentPlaces();
     renderMapDestination();
+    setNativeMapMode(nativeMapPreferred());
+    // Ukuran kartu bisa berubah setelah font/tata letak selesai dihitung
+    setTimeout(syncNativeMap, 300);
+    setTimeout(syncNativeMap, 1500);
 
   </script>
 </body>
