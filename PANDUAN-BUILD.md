@@ -19,6 +19,8 @@ Ada **dua aplikasi** di repo yang sama, dipisah per branch:
 
 Kedua aplikasi bisa terpasang berdampingan di satu perangkat karena ID-nya berbeda.
 
+Ada juga aplikasi ketiga di **repo terpisah**: **AutoSplit** (`iwankapatualang123-sys/autosplit-launcher`, ID `com.autosplit.launcher`). Ini launcher native yang memakai template speedometer Elio dan menambahkan panel split otomatis, equalizer, bingkai ambient, dan pop-up matikan unit. Penjelasan lengkapnya di **bagian 12** — alat build-nya berbeda, jangan dicampur dengan repo ini.
+
 **Arsitektur:** aplikasi native Kotlin yang berisi satu **WebView** layar penuh. Seluruh tampilan ada di satu file HTML (`app/src/main/assets/index.html`). Kotlin (`MainActivity.kt`) membaca sensor (GPS, accelerometer, kompas, cahaya, baterai, charger) lalu mengirim datanya ke halaman lewat JavaScript, dan halaman memanggil fungsi Kotlin lewat objek `window.ElioNativeBridge`.
 
 ---
@@ -217,6 +219,123 @@ Saat halaman dibuka di browser biasa (tanpa Android), `window.ElioNativeBridge` 
 
 ## 11. Template perintah untuk Gemini
 
-Salin ke Gemini saat melanjutkan:
+Salin ke Gemini saat melanjutkan (untuk AutoSplit, pakai template di bagian 12.7):
 
 > Kamu melanjutkan proyek Android "Elio Speedo" di repo GitHub `iwankapatualang123-sys/elio-ux-android`, branch `speedometer-only`. Baca dulu `PANDUAN-BUILD.md` di root repo, terutama bagian 7 (peta kode) dan 8 (aturan penting). Tampilan ada di `app/src/main/assets/index.html`, kode Android di `app/src/main/java/com/example/MainActivity.kt`. Build dilakukan otomatis oleh GitHub Actions setiap push ke branch ini; jangan ubah `.github/workflows/android-build.yml`, versi Gradle/AGP, atau blok `signingConfigs` kecuali diminta. Jangan menambah library, API key, atau CDN. Target perangkat Galaxy Tab A6 (Android 8.1, RAM 2 GB), jadi utamakan ringan. Tugas saya: …
+
+---
+
+## 12. AutoSplit (repo terpisah: `autosplit-launcher`)
+
+| | |
+|---|---|
+| Repo | https://github.com/iwankapatualang123-sys/autosplit-launcher (branch `main`) |
+| Nama / ID aplikasi | AutoSplit / `com.autosplit.launcher` |
+| APK debug | https://github.com/iwankapatualang123-sys/autosplit-launcher/releases/download/latest/AutoSplit-debug.apk |
+| APK release (diperkecil R8) | https://github.com/iwankapatualang123-sys/autosplit-launcher/releases/download/latest/AutoSplit-release.apk |
+| Status per 19 Nov 2026 | Build terakhir sukses (commit `8294832`) |
+
+AutoSplit adalah **launcher native** (Kotlin murni, tanpa library tambahan) untuk head unit. Speedometernya memakai template **Elio Speedo** (`elio-speedo.css` / `elio-speedo.js`, sama dengan paket template 4 mode) yang ditampilkan di WebView, sedangkan panel, bingkai, sensor, dan pengaturan dibuat native.
+
+### 12.1 Fitur AutoSplit
+
+**Launcher & panel split otomatis**
+- Bisa dijadikan aplikasi Home ("Jadikan launcher utama"); tombol Kembali tidak menutup layar utama.
+- **Tombol "MULAI"** membuka dua aplikasi pilihan ke panel di sisi kanan: **panel A** dan **panel B**, dipilih dari daftar "Semua aplikasi" (mis. A: Maps, B: YouTube).
+- Dua jalur peluncuran (`PanelEngine.kt`): **freeform/pop-up** dengan ukuran jendela ditentukan, atau **split** ke sisi seberang launcher (`FLAG_ACTIVITY_LAUNCH_ADJACENT`).
+- Dua susunan: **Navigasi** (A besar di atas, B kecil di bawah) dan **Hiburan** (sebaliknya). Semua jendela sejajar dengan kolom speedometer.
+
+**Speedometer**
+- 4 gaya dari template Elio: **Lexus F-Sport, BMW M3, Mazda KODO, Honda Type R**; tombol **GAYA** untuk berganti.
+- Tata letak menyesuaikan ukuran area (`autosplit.js`) supaya tidak ada ruang kosong; angka kecepatan bergerak halus per frame.
+- Data hanya dikirim ke halaman saat nilainya berubah (`SpeedoView.kt`).
+
+**Sensor & telemetri** (`SensorHub.kt`, tetap hidup saat jendela split tidak fokus)
+- GPS: kecepatan, arah, ketinggian (mdpl), jumlah satelit.
+- Trip: jarak trip, kecepatan maksimal, rata-rata, waktu jalan (bisa direset).
+- Sensor lain: gaya G, cahaya, tekanan udara, suhu baterai, baterai.
+- Panel "Sensor dan diagnostik".
+
+**Tampilan**
+- Warna aksen dan **gradasi custom** lewat roda warna bulat + kecerahan (`ColorWheelView.kt`), dengan preset Cyber Neon, Aurora, Plasma, Sunset, Lava GR, Gold, Toxic, Kustom.
+- **Bingkai neon** di tepi layar dan mengelilingi tiap jendela aplikasi beserta labelnya (`SlotOverlay.kt`): mode **Diam** (warna tetap) atau **Berjalan** (gradasi berputar seperti ambient light) dengan 4 kecepatan.
+- Kartu kaca transparan dengan bayangan (`GlassDrawable.kt`), latar HUD bergradien + kisi tipis (`HudBackground.kt`).
+- Indikator atas: batang sinyal seluler, busur Wi-Fi, baterai bersegmen dengan ikon petir saat mengisi (`StatusIndicator.kt`, `LinkHub.kt`).
+
+**Equalizer latar** (`EqHub.kt`, `eq.js`)
+- Membaca spektrum suara yang sedang diputar tablet (sesi audio global) menjadi 32 pita; mode **Mati / Batang / Gelombang**. Butuh izin mikrofon (`RECORD_AUDIO`). Pengiriman berhenti saat hening agar hemat CPU; ada mode hemat (10× per detik).
+
+**Daya & kendaraan**
+- **Pop-up "Apakah unit dimatikan?"** saat pengisi daya dicabut (`ShutdownActivity.kt`): **Ya** = kunci layar; tanpa jawaban = dikunci otomatis setelah **20 detik**; charger dicolok lagi = pop-up ditutup. Dialog ditaruh di kolom speedometer kiri atas agar tidak tertutup jendela Maps/YouTube. Kunci layar memakai izin admin perangkat (`AdminReceiver.kt`, hanya force-lock), diminta sekali.
+- **Buka otomatis saat charger dicolok** (`ChargeService.kt`): layanan latar depan dengan notifikasi kecil tanpa bunyi (sejak Android 8, deteksi charger tidak bisa didaftarkan di manifest).
+- **Penghemat daya saat terkunci** (`PowerSaver.kt`): menyalakan Battery Saver sistem saat layar terkunci dan mematikannya saat dibuka. Butuh izin khusus sekali lewat ADB:
+  `adb shell pm grant com.autosplit.launcher android.permission.WRITE_SECURE_SETTINGS`
+- Bluetooth dinyalakan otomatis saat layar menyala (hanya Android ≤ 12) dan Wi-Fi (hanya Android ≤ 9) — Tab A6 (Android 8.1) mendukung keduanya.
+- Buka otomatis saat perangkat menyala (`BootReceiver.kt`).
+
+### 12.2 Struktur kode
+
+```
+.github/workflows/build.yml              Build debug + release, terbitkan ke rilis "latest"
+app/build.gradle.kts                     ID, SDK, tanda tangan (lihat 12.5)
+app/autosplit.keystore                   Kunci tanda tangan (lihat 12.5)
+app/src/main/AndroidManifest.xml         Izin, activity, service, receiver
+app/src/main/assets/speedo/              Template speedometer: index.html, elio-speedo.css/js, autosplit.css/js, eq.js
+app/src/main/java/com/autosplit/launcher/
+  MainActivity.kt      UI launcher, panel, pengaturan, warna, bingkai (±1.070 baris)
+  PanelEngine.kt       Meluncurkan aplikasi ke panel (freeform / split)
+  SlotOverlay.kt       Bingkai neon layar & jendela
+  SpeedoView.kt        WebView template speedometer + pengiriman data sensor
+  SensorHub.kt         Semua sensor, GPS, trip, baterai
+  EqHub.kt             Spektrum audio untuk equalizer
+  ShutdownActivity.kt  Pop-up matikan unit + kunci layar
+  ChargeService.kt     Layanan latar depan: buka saat charger dicolok
+  PowerSaver.kt        Penghemat daya saat terkunci, Bluetooth & Wi-Fi otomatis
+  Prefs.kt             Penyimpanan pengaturan
+  Ambient.kt, GlassDrawable.kt, HudBackground.kt, ColorWheelView.kt, StatusIndicator.kt, LinkHub.kt
+  AdminReceiver.kt, BootReceiver.kt
+```
+
+### 12.3 Versi alat build AutoSplit (BERBEDA dari Elio Speedo)
+
+| Komponen | AutoSplit | Elio Speedo (repo ini) |
+|---|---|---|
+| Gradle | **8.9** | 9.3.1 |
+| Android Gradle Plugin | **8.5.2** | 9.1.1 |
+| Kotlin | **1.9.24**, plugin `org.jetbrains.kotlin.android` diterapkan | 2.4.21, Kotlin bawaan AGP 9 |
+| compileSdk / targetSdk | **34 / 34** | 36.1 / 36 |
+| minSdk | 24 | 24 |
+| Library | **tidak ada** (Android SDK murni) | core-ktx, appcompat, play-services-location |
+| Runner CI | `ubuntu-24.04`, Android SDK bawaan runner | cmdline-tools diunduh manual |
+
+Jangan menyalin `build.gradle.kts`, `libs.versions.toml`, atau workflow antar kedua repo.
+
+### 12.4 Cara build AutoSplit
+
+Workflow `.github/workflows/build.yml` berjalan setiap **push ke `main`/`master`** atau manual (**Actions → Build APK → Run workflow**):
+
+1. Checkout, JDK 17, Gradle 8.9.
+2. `gradle --no-daemon assembleDebug assembleRelease`. Jika gagal, baris error penting (`e:`, `error:`, `What went wrong`) otomatis tampil sebagai anotasi merah di halaman run — biasanya bisa dibaca tanpa membuka log penuh.
+3. Kedua APK diunggah sebagai artifact.
+4. Rilis bertag **`latest`** dihapus lalu dibuat ulang (`gh release create`) berisi `AutoSplit-release.apk` dan `AutoSplit-debug.apk` — link download tetap sama.
+
+Pasang **debug** jika ingin aman. **Release** lebih kecil (R8 + shrink resources); bila ada fitur yang hilang setelah diperkecil, cek `app/proguard-rules.pro` — kelas/metode yang dipanggil dari JavaScript (`@JavascriptInterface`) harus dipertahankan.
+
+### 12.5 Peringatan: kunci tanda tangan AutoSplit ada di repo publik
+
+`app/autosplit.keystore` tersimpan di repo **publik**, dan passwordnya tertulis di `app/build.gradle.kts`. Akibatnya siapa pun bisa membuat APK palsu yang diterima tablet sebagai "update" AutoSplit. Untuk aplikasi pribadi risikonya kecil, tapi sebaiknya diperbaiki:
+
+1. Buat kunci baru (jangan pakai yang sudah publik) dan simpan di luar repo.
+2. Simpan sebagai GitHub Secret (base64 + password) lalu dekode di workflow — pola yang sama dengan bagian 6.
+3. Hapus `autosplit.keystore` dan password dari repo.
+4. Uninstall AutoSplit sekali di tablet, lalu pasang APK dengan kunci baru.
+
+### 12.6 Catatan uji di tablet
+
+- Pertama dibuka: izinkan **Lokasi**, **Mikrofon** (untuk equalizer), **admin perangkat** (kunci layar), dan notifikasi layanan latar depan.
+- Uji: **MULAI** membuka panel A & B dengan bingkai neon yang pas; ganti Navigasi/Hiburan; equalizer bergerak saat musik diputar; cabut charger → pop-up 20 detik; colok charger → aplikasi terbuka otomatis.
+- **Penghemat daya saat terkunci** baru berjalan setelah perintah ADB di 12.1 dijalankan sekali.
+
+### 12.7 Template perintah untuk Gemini (AutoSplit)
+
+> Kamu melanjutkan proyek Android "AutoSplit" di repo GitHub `iwankapatualang123-sys/autosplit-launcher`, branch `main`. Ini launcher native Kotlin tanpa library tambahan (AGP 8.5.2, Gradle 8.9, Kotlin 1.9.24, compileSdk 34). Speedometer ditampilkan dari `app/src/main/assets/speedo/` (template Elio Speedo) lewat `SpeedoView.kt`; panel split di `PanelEngine.kt` dan `SlotOverlay.kt`; sensor di `SensorHub.kt`; pop-up matikan unit di `ShutdownActivity.kt`. Build otomatis lewat `.github/workflows/build.yml` setiap push ke `main`. Jangan menambah library, API key, atau CDN, dan jangan mengubah versi Gradle/AGP kecuali diminta. Target Galaxy Tab A6 (Android 8.1, RAM 2 GB), jadi utamakan ringan. Panduan umum ada di `PANDUAN-BUILD.md` repo `elio-ux-android`. Tugas saya: …
